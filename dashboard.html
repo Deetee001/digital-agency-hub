@@ -398,7 +398,8 @@ let apiKey = '';
 let elKey = '';
 let model = 'claude-sonnet-4-6';
 let bizName = 'NorthCoast Digital';
-let listening = false;
+let listening = false;  // mic is on (wake word mode)
+let awake = false;       // actively listening for a command (after wake word)
 let speaking = false;
 let recog = null;
 let speechQ = [];
@@ -545,16 +546,19 @@ function qSpeak(text) {
 async function runQueue() {
   if (!speechQ.length) {
     speaking = false;
-    setMicState(listening ? 'listening' : 'idle');
+    awake = false; // reset — user must say "Hey Jarvis" again
+    setMicState('idle');
     updateMuteBtn();
-    // Resume mic now that Jarvis is done talking
+    setStatus('Listening for "Hey Jarvis"...');
+    // Resume mic after Jarvis finishes speaking
     if (listening && recog) { try { recog.start(); } catch(e) {} }
     return;
   }
   speaking = true;
+  awake = false;
   setMicState('speaking');
   updateMuteBtn();
-  // Pause mic while Jarvis speaks to prevent echo loop
+  // Hard stop mic while Jarvis speaks — prevents echo loop
   if (recog) { try { recog.stop(); } catch(e) {} }
 
   const text = speechQ.shift();
@@ -612,14 +616,15 @@ function stopSpeak() {
 
 function toggleMuteMic() {
   listening = !listening;
+  awake = false;
   if (listening) {
     if (recog && !speaking) { try { recog.start(); } catch(e) {} }
-    setMicState('listening');
-    setStatus('Mic on — say "Hey Jarvis" to activate');
+    setMicState('idle');
+    setStatus('Listening for "Hey Jarvis"...');
   } else {
     if (recog) { try { recog.stop(); } catch(e) {} }
     setMicState('idle');
-    setStatus('Mic muted');
+    setStatus('Mic muted — click 🎤 to unmute');
   }
   updateMuteBtn();
 }
@@ -641,38 +646,54 @@ function startRecog() {
   recog.lang = 'en-US';
 
   recog.onresult = e => {
+    if (speaking) return; // never process input while Jarvis is talking
     let interim = '', final = '';
     for (let i = e.resultIndex; i < e.results.length; i++) {
       if (e.results[i].isFinal) final += e.results[i][0].transcript;
       else interim += e.results[i][0].transcript;
     }
-    if (interim) setStatus(`Hearing: "${interim.trim()}"`);
+    if (interim && awake) setStatus(`Hearing: "${interim.trim()}"`);
     if (final) {
       const t = final.trim();
       const low = t.toLowerCase();
-      if (low.includes('jarvis') || listening) {
-        const clean = t.replace(/hey jarvis|jarvis/gi, '').trim();
+      const hasWake = low.includes('hey jarvis') || low.startsWith('jarvis');
+      if (hasWake) {
+        const clean = t.replace(/^hey jarvis\W*/i, '').replace(/^jarvis\W*/i, '').trim();
         if (clean.length > 2) {
-          stopSpeak();
-          addMsg('user', t);
-          document.getElementById('ti').value = '';
-          callClaude(t);
+          // Wake word + command in one breath
+          awake = false;
+          addMsg('user', clean);
+          callClaude(clean);
+          setStatus('Processing...');
         } else {
-          setStatus('Standing by...');
-          qSpeak('Yes sir, how can I assist?');
+          // Just wake word — wait for command
+          awake = true;
+          setMicState('listening');
+          setStatus('Listening... go ahead');
+          qSpeak('Yes sir?');
         }
+      } else if (awake) {
+        // Already awake — process this as the command
+        awake = false;
+        addMsg('user', t);
+        callClaude(t);
+        setStatus('Processing...');
+        setMicState('idle');
       }
+      // If not awake and no wake word — ignore completely
     }
   };
 
-  recog.onerror = e => { if (e.error !== 'no-speech') setStatus('Voice: ' + e.error); };
-  recog.onend = () => { if (listening) { try { recog.start(); } catch(e) {} } };
+  recog.onerror = e => { if (e.error !== 'no-speech') setStatus('Voice error: ' + e.error); };
+  recog.onend = () => {
+    // Auto-restart unless we stopped it intentionally (speaking or mic off)
+    if (listening && !speaking) { try { recog.start(); } catch(e) {} }
+  };
 
   try {
     recog.start();
     listening = true;
-    setMicState('listening');
-    setStatus('Listening... say "Hey Jarvis" to activate');
+    setStatus('Listening for "Hey Jarvis"...');
   } catch(e) {
     setStatus('Click the reactor to activate voice');
   }
@@ -681,16 +702,19 @@ function startRecog() {
 function toggleMic() {
   if (speaking) { stopSpeak(); return; }
   if (!recog) { startRecog(); return; }
-  listening = !listening;
-  if (listening) {
-    try { recog.start(); } catch(e) {}
-    setMicState('listening');
-    setStatus('Listening... say "Hey Jarvis" + your question');
-  } else {
-    recog.stop();
+  if (awake) {
+    // Cancel active listening, back to wake word mode
+    awake = false;
     setMicState('idle');
-    setStatus('Voice paused — click reactor to resume');
+    setStatus('Listening for "Hey Jarvis"...');
+  } else {
+    // Manual one-shot: activate for next command
+    awake = true;
+    if (!listening) { listening = true; try { recog.start(); } catch(e) {} }
+    setMicState('listening');
+    setStatus('Listening... speak your command');
   }
+  updateMuteBtn();
 }
 
 // ─── UI ────────────────────────────────────────────────────────────────────
