@@ -330,6 +330,44 @@ main{display:grid;grid-template-columns:270px 1fr 270px;gap:1px;
 </main>
 
 <script>
+// ─── SUPABASE ──────────────────────────────────────────────────────────────
+const SB_URL = 'https://bjzeccjocuwjyrxoqgqc.supabase.co';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJqemVjY2pvY3V3anlyeG9xZ3FjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEzNzUwOTcsImV4cCI6MjA5Njk1MTA5N30.27emEauycVbRevIqt55f2Kj4QGvLP0KZG4d6wnvskxQ';
+
+async function sbGet(table, params='') {
+  const r = await fetch(`${SB_URL}/rest/v1/${table}?${params}`, {
+    headers: {'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`}
+  });
+  return r.json();
+}
+
+async function sbInsert(table, data) {
+  const r = await fetch(`${SB_URL}/rest/v1/${table}`, {
+    method: 'POST',
+    headers: {'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`,
+      'Content-Type': 'application/json', 'Prefer': 'return=representation'},
+    body: JSON.stringify(data)
+  });
+  return r.json();
+}
+
+async function sbUpdate(table, id, data) {
+  const r = await fetch(`${SB_URL}/rest/v1/${table}?id=eq.${id}`, {
+    method: 'PATCH',
+    headers: {'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`,
+      'Content-Type': 'application/json', 'Prefer': 'return=representation'},
+    body: JSON.stringify(data)
+  });
+  return r.json();
+}
+
+async function sbDelete(table, id) {
+  await fetch(`${SB_URL}/rest/v1/${table}?id=eq.${id}`, {
+    method: 'DELETE',
+    headers: {'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`}
+  });
+}
+
 // ─── LEADS DATA ────────────────────────────────────────────────────────────
 const LEADS_DEFAULT = [
   {id:'l1',name:'Main Street Grille',phone:'(440) 776-9004',st:'sn',sl:'NO SITE',pr:'P1',loc:'Oberlin',ctx:'a diner in Oberlin at (440) 776-9004, no website'},
@@ -363,13 +401,30 @@ const PR_LABELS = {
 
 let leads = [];
 
-function loadLeads() {
-  const s = localStorage.getItem('j_leads');
-  leads = s ? JSON.parse(s) : JSON.parse(JSON.stringify(LEADS_DEFAULT));
+async function loadLeads() {
+  try {
+    const data = await sbGet('leads', 'order=priority,name');
+    if (data && data.length) {
+      leads = data.map(l => ({
+        id: l.id, name: l.name, phone: l.phone||'', loc: l.location||'',
+        pr: l.priority||'P1', notes: l.notes||'', ctx: l.context||l.name,
+        st: statusClass(l.status), sl: l.status||'NO SITE'
+      }));
+    } else {
+      leads = JSON.parse(JSON.stringify(LEADS_DEFAULT));
+    }
+  } catch(e) {
+    leads = JSON.parse(JSON.stringify(LEADS_DEFAULT));
+  }
+  renderLeads();
 }
 
-function saveLeads() {
-  localStorage.setItem('j_leads', JSON.stringify(leads));
+function statusClass(s) {
+  if (!s) return 'sn';
+  if (s === 'FB ONLY') return 'sf';
+  if (s === 'OUTDATED') return 'so';
+  if (s === 'CLIENT') return 'sc';
+  return 'sn';
 }
 
 function renderLeads() {
@@ -381,12 +436,12 @@ function renderLeads() {
     if (!pl.length) continue;
     html += `<div class="pg"><div class="plbl">${PR_LABELS[p]}</div>`;
     for (const l of pl) {
-      const ctx = l.ctx.replace(/'/g,"\\'");
+      const ctx = (l.ctx||l.name).replace(/'/g,"\\'");
       html += `<div class="lc" id="lead-${l.id}">
         <span class="ls ${l.st}">${l.sl}</span>
-        <button class="ldel" onclick="event.stopPropagation();deleteLead('${l.id}')" title="Remove lead">×</button>
+        <button class="ldel" onclick="event.stopPropagation();deleteLead('${l.id}','${l.name.replace(/'/g,"\\'")}')" title="Remove lead">×</button>
         <div class="ln" onclick="askLead('${ctx}')">${l.name}</div>
-        <div class="lp" onclick="askLead('${ctx}')">${l.phone}</div>
+        <div class="lp" onclick="askLead('${ctx}')">${l.phone||'Directory Listed'}</div>
       </div>`;
     }
     html += '</div>';
@@ -395,27 +450,33 @@ function renderLeads() {
   document.getElementById('totalCount').textContent = leads.length;
 }
 
-function deleteLead(id) {
-  const l = leads.find(x => x.id === id);
+async function deleteLead(id, name) {
+  await sbDelete('leads', id);
   leads = leads.filter(x => x.id !== id);
-  saveLeads(); renderLeads();
-  if (l) addMsg('sys', `"${l.name}" removed from pipeline.`);
+  renderLeads();
+  addMsg('sys', `"${name}" removed from pipeline.`);
 }
 
-function deleteLeadByName(name) {
-  const idx = leads.findIndex(l => l.name.toLowerCase().includes(name.toLowerCase()));
-  if (idx < 0) return null;
-  const n = leads[idx].name;
-  leads.splice(idx, 1);
-  saveLeads(); renderLeads();
-  return n;
+async function deleteLeadByName(name) {
+  const l = leads.find(x => x.name.toLowerCase().includes(name.toLowerCase()));
+  if (!l) return null;
+  await sbDelete('leads', l.id);
+  leads = leads.filter(x => x.id !== l.id);
+  renderLeads();
+  return l.name;
 }
 
-function addLeadObj(d) {
-  const id = 'l' + Date.now();
-  leads.push({id, name:d.name, phone:d.phone||'', st:d.st||'sn', sl:d.sl||'NO SITE',
-    pr:d.pr||'P3', loc:d.loc||'', ctx:`${d.name} in ${d.loc||''}, ${d.notes||'no website'}`});
-  saveLeads(); renderLeads();
+async function addLeadObj(d) {
+  const row = {name:d.name, phone:d.phone||'', location:d.loc||'',
+    priority:d.pr||'P3', status:d.notes||'NO SITE', notes:d.notes||'',
+    context:`${d.name} in ${d.loc||''}, ${d.notes||'no website'}`};
+  const res = await sbInsert('leads', row);
+  if (res && res[0]) {
+    leads.push({id:res[0].id, name:d.name, phone:d.phone||'', loc:d.loc||'',
+      pr:d.pr||'P3', notes:d.notes||'', ctx:row.context,
+      st:statusClass(d.notes), sl:d.notes||'NO SITE'});
+  }
+  renderLeads();
 }
 
 function showAddLead() {
@@ -535,9 +596,8 @@ function goOnline() {
   document.getElementById('logoEl').innerHTML = `J.A.R.V.I.S. <span>// ${bizName.toUpperCase()}</span>`;
 }
 
-window.addEventListener('load', () => {
-  loadLeads();
-  renderLeads();
+window.addEventListener('load', async () => {
+  await loadLeads();
   const k = localStorage.getItem('j_key');
   if (k) {
     apiKey = k;
