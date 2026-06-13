@@ -99,7 +99,12 @@ main{display:grid;grid-template-columns:270px 1fr 270px;gap:1px;
 .micbtn.listening{background:rgba(0,255,136,.15);border-color:var(--green);
   animation:pmic 1s ease-in-out infinite}
 .micbtn.speaking{background:rgba(255,136,0,.15);border-color:var(--orange)}
+.micbtn.thinking{background:rgba(0,200,255,.18);border-color:var(--cyan);
+  animation:pthink .6s ease-in-out infinite}
 @keyframes pmic{0%,100%{box-shadow:0 0 0 0 rgba(0,255,136,.4)}50%{box-shadow:0 0 0 14px rgba(0,255,136,0)}}
+@keyframes pthink{0%,100%{box-shadow:0 0 6px var(--cyan),0 0 0 0 rgba(0,200,255,.4)}50%{box-shadow:0 0 20px var(--cyan),0 0 0 10px rgba(0,200,255,0)}}
+.arc.thinking .ar1,.arc.thinking .ar2,.arc.thinking .ar3{animation-duration:2s!important}
+.arc.thinking .ar4{animation:pr 0.5s ease-in-out infinite}
 
 .wf{display:none;align-items:center;justify-content:center;gap:3px;height:18px}
 .wf.on{display:flex}
@@ -579,6 +584,18 @@ Rules for actions:
 - When user asks to add a lead → confirm verbally, then append [ADD:...] tag
 - CRITICAL: Action tags must NEVER appear in your spoken text. Pretend they don't exist.
 
+CRITICAL — "ADD MORE LEADS" behavior:
+When asked to add more leads (e.g. "add 5 more leads", "find more leads", "add some businesses"):
+DO NOT just say you will search. DO NOT promise and do nothing.
+IMMEDIATELY add them using [ADD:...] tags in the same response.
+Use your training knowledge of real small businesses in Oberlin, Lorain, and Elyria, OH.
+Generate plausible real local businesses (hair salons, barbershops, nail salons, tire shops,
+funeral homes, tax preparers, insurance agents, law offices, daycare centers, florists,
+bakeries, printing shops, trophy shops, etc.) that typically lack websites.
+Example: if asked for 5 more leads, respond with 1-2 spoken sentences confirming the action,
+then append 5 [ADD:...] tags. The user will see them appear in the lead list instantly.
+Format: [ADD:Business Name|Phone or "Local Dir."|City|P3|no website]
+
 ═══ RESPONSE STYLE ═══
 • Your responses are SPOKEN ALOUD via ElevenLabs — keep them SHORT (1-3 sentences for voice responses)
 • Exception: drafting full email/call/text templates — give the complete template
@@ -665,7 +682,8 @@ async function callClaude(userMsg) {
 
   const msgId = 'j' + Date.now();
   addMsg('jarvis', '', msgId);
-  setStatus('Thinking...');
+  setMicState('thinking');
+  setStatus('Processing...');
 
   let full = '';
   let sentBuf = '';
@@ -707,6 +725,7 @@ async function callClaude(userMsg) {
         try {
           const ev = JSON.parse(d);
           if (ev.type === 'content_block_delta' && ev.delta?.type === 'text_delta') {
+            if (full === '') { setMicState('idle'); setStatus('Responding...'); } // clear thinking spinner on first token
             const t = ev.delta.text;
             full += t;
             sentBuf += t;
@@ -731,7 +750,9 @@ async function callClaude(userMsg) {
     finalizeMsg(msgId);
     setStatus('Listening for "Hey Jarvis"...');
   } catch(err) {
+    setMicState('idle');
     updateMsg(msgId, 'System error: ' + err.message + '. Check your API key in Settings.');
+    finalizeMsg(msgId);
     setStatus('Error — check Settings');
     console.error(err);
   }
@@ -936,9 +957,12 @@ function setStatus(t) { document.getElementById('vstatus').textContent = t; }
 function setMicState(s) {
   const btn = document.getElementById('micBtn');
   const wf = document.getElementById('wf');
-  btn.classList.remove('listening','speaking');
+  const arc = document.querySelector('.arc');
+  btn.classList.remove('listening','speaking','thinking');
+  if (arc) arc.classList.remove('thinking');
   if (s === 'listening') { btn.classList.add('listening'); btn.textContent = '🎙'; wf.classList.add('on'); }
   else if (s === 'speaking') { btn.classList.add('speaking'); btn.textContent = '🔊'; wf.classList.add('on'); }
+  else if (s === 'thinking') { btn.classList.add('thinking'); btn.textContent = '⟳'; wf.classList.add('on'); if (arc) arc.classList.add('thinking'); }
   else { btn.textContent = '🎤'; wf.classList.remove('on'); }
 }
 
