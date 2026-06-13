@@ -211,9 +211,13 @@ main{display:grid;grid-template-columns:270px 1fr 270px;gap:1px;
       <option value="claude-sonnet-4-6" selected>Sonnet 4.6 — Recommended (fast + smart)</option>
       <option value="claude-opus-4-6">Opus 4.6 — Maximum intelligence (slower)</option>
     </select>
-    <label>ELEVENLABS API KEY (for George's voice)</label>
+    <label>GOOGLE TTS API KEY (British Neural voice — recommended)</label>
+    <input type="password" id="googleKeyInput" placeholder="AIzaSy..." autocomplete="off">
+    <button class="mbtn" onclick="testGoogleTTS()" style="margin-bottom:14px;background:rgba(0,255,136,.08);border-color:var(--green);color:var(--green)">▶ TEST GOOGLE VOICE</button>
+    <div id="googleTestResult" style="font-size:.65rem;color:var(--green);margin-top:-10px;margin-bottom:12px;min-height:16px;text-align:center"></div>
+    <label>ELEVENLABS API KEY (George voice — optional backup)</label>
     <input type="password" id="elKeyInput" placeholder="f3d0c4c7..." autocomplete="off">
-    <button class="mbtn" onclick="testElevenLabs()" style="margin-bottom:14px;background:rgba(0,255,136,.08);border-color:var(--green);color:var(--green)">▶ TEST GEORGE VOICE</button>
+    <button class="mbtn" onclick="testElevenLabs()" style="margin-bottom:14px;background:rgba(0,255,136,.08);border-color:var(--green);color:var(--green)">▶ TEST ELEVENLABS VOICE</button>
     <div id="elTestResult" style="font-size:.65rem;color:var(--green);margin-top:-10px;margin-bottom:12px;min-height:16px;text-align:center"></div>
     <label>YOUR BUSINESS NAME</label>
     <input type="text" id="bizNameInput" placeholder="NorthCoast Digital" value="NorthCoast Digital">
@@ -610,7 +614,9 @@ Format: [ADD:Business Name|Phone or "Local Dir."|City|P3|no website]
 let history = [];
 let apiKey = '';
 let elKey = '';
+let googleKey = '';
 let model = 'claude-sonnet-4-6';
+const GOOGLE_TTS_VOICE = 'en-GB-Neural2-B'; // British male, warm
 let bizName = 'NorthCoast Digital';
 let listening = false;  // mic is on (wake word mode)
 let awake = false;       // actively listening for a command (after wake word)
@@ -627,10 +633,12 @@ function initSystem() {
   if (!k) { alert('Enter your Anthropic API key to continue.'); return; }
   apiKey = k;
   elKey = document.getElementById('elKeyInput').value.trim();
+  googleKey = document.getElementById('googleKeyInput').value.trim();
   model = document.getElementById('modelSelect').value;
   bizName = document.getElementById('bizNameInput').value.trim() || 'NorthCoast Digital';
   localStorage.setItem('j_key', apiKey);
   localStorage.setItem('j_elkey', elKey);
+  localStorage.setItem('j_googlekey', googleKey);
   localStorage.setItem('j_model', model);
   localStorage.setItem('j_biz', bizName);
   document.getElementById('settingsModal').classList.remove('on');
@@ -653,11 +661,13 @@ window.addEventListener('load', async () => {
   if (k) {
     apiKey = k;
     elKey = localStorage.getItem('j_elkey') || '';
+    googleKey = localStorage.getItem('j_googlekey') || '';
     const savedModel = localStorage.getItem('j_model') || 'claude-sonnet-4-6';
     model = (savedModel === 'claude-haiku-4-5') ? 'claude-sonnet-4-6' : savedModel;
     bizName = localStorage.getItem('j_biz') || 'NorthCoast Digital';
     document.getElementById('apiKeyInput').value = k;
     document.getElementById('elKeyInput').value = elKey;
+    document.getElementById('googleKeyInput').value = googleKey;
     document.getElementById('modelSelect').value = model;
     document.getElementById('bizNameInput').value = bizName;
     document.getElementById('settingsModal').classList.remove('on');
@@ -787,21 +797,48 @@ async function runQueue() {
 
   const text = speechQ.shift();
 
+  // ── 1. Google TTS (primary) ──────────────────────────────────────────────
+  if (googleKey) {
+    setStatus('Speaking...');
+    try {
+      const res = await fetch(`https://texttospeech.googleapis.com/v1/text:synthesize?key=${googleKey}`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+          input: {text},
+          voice: {languageCode: 'en-GB', name: GOOGLE_TTS_VOICE},
+          audioConfig: {audioEncoding: 'MP3', speakingRate: 0.95, pitch: -1.0}
+        })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const audio = new Audio('data:audio/mp3;base64,' + data.audioContent);
+        currentAudio = audio;
+        audio.onended = () => { currentAudio = null; runQueue(); };
+        audio.onerror = () => { currentAudio = null; runQueue(); };
+        await audio.play();
+        return;
+      } else {
+        const err = await res.json().catch(()=>({}));
+        console.warn('Google TTS error:', res.status, err);
+        setStatus(`⚠ Google voice error (${res.status}) — check key in Settings`);
+      }
+    } catch(e) {
+      console.warn('Google TTS error:', e);
+      setStatus('⚠ Google TTS connection error');
+    }
+    // fall through to ElevenLabs or browser
+  }
+
+  // ── 2. ElevenLabs (backup if Google fails or no Google key) ──────────────
   if (elKey) {
-    setStatus('George speaking...');
+    setStatus('Speaking (ElevenLabs)...');
     try {
       const res = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${EL_VOICE_ID}`, {
         method: 'POST',
-        headers: {
-          'xi-api-key': elKey,
-          'Content-Type': 'application/json',
-          'Accept': 'audio/mpeg'
-        },
-        body: JSON.stringify({
-          text,
-          model_id: EL_MODEL,
-          voice_settings: { stability: 0.5, similarity_boost: 0.78, style: 0.2, use_speaker_boost: true }
-        })
+        headers: {'xi-api-key': elKey, 'Content-Type': 'application/json', 'Accept': 'audio/mpeg'},
+        body: JSON.stringify({text, model_id: EL_MODEL,
+          voice_settings: {stability:0.5, similarity_boost:0.78, style:0.2, use_speaker_boost:true}})
       });
       if (res.ok) {
         const blob = await res.blob();
@@ -813,20 +850,14 @@ async function runQueue() {
         return;
       } else {
         const errBody = await res.text().catch(()=>'');
-        console.warn('ElevenLabs HTTP error:', res.status, errBody);
-        setStatus(`Voice error (${res.status}) — check ElevenLabs key in Settings`);
+        console.warn('ElevenLabs error:', res.status, errBody);
       }
-    } catch(e) {
-      console.warn('ElevenLabs error:', e);
-      setStatus('Voice connection error — check network');
-    }
-    // ElevenLabs failed — fall back to browser TTS but label it clearly
-    setStatus('⚠ George unavailable — using browser voice');
-    // fall through to browser TTS below
+    } catch(e) { console.warn('ElevenLabs error:', e); }
+    // fall through to browser TTS
   }
 
-  // Browser TTS (either no ElevenLabs key, or ElevenLabs failed)
-  setStatus(elKey ? '⚠ Using browser voice (ElevenLabs failed — check key/quota in Settings)' : 'Speaking...');
+  // ── 3. Browser TTS (last resort) ─────────────────────────────────────────
+  setStatus(googleKey||elKey ? '⚠ Using browser voice (cloud TTS failed)' : 'Speaking...');
   const utt = new SpeechSynthesisUtterance(text);
   const voices = speechSynthesis.getVoices();
   const want = ['Microsoft David','Google UK English Male','Microsoft George','Microsoft Mark','Daniel'];
@@ -1047,6 +1078,37 @@ function clearConv() {
   document.getElementById('conv').innerHTML = '';
   history = [];
   addMsg('jarvis', 'Conversation cleared. All systems ready.');
+}
+
+async function testGoogleTTS() {
+  const key = document.getElementById('googleKeyInput').value.trim();
+  const result = document.getElementById('googleTestResult');
+  if (!key) { result.style.color='var(--red)'; result.textContent = '✗ Enter your Google TTS key first'; return; }
+  result.style.color = 'var(--text)'; result.textContent = 'Testing...';
+  try {
+    const res = await fetch(`https://texttospeech.googleapis.com/v1/text:synthesize?key=${key}`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        input: {text: 'Google voice test successful, sir. Ready for your command.'},
+        voice: {languageCode: 'en-GB', name: GOOGLE_TTS_VOICE},
+        audioConfig: {audioEncoding: 'MP3', speakingRate: 0.95, pitch: -1.0}
+      })
+    });
+    if (res.ok) {
+      const data = await res.json();
+      const audio = new Audio('data:audio/mp3;base64,' + data.audioContent);
+      audio.onerror = () => { result.style.color='var(--red)'; result.textContent = '✗ Audio play failed'; };
+      await audio.play();
+      result.style.color = 'var(--green)'; result.textContent = '✓ Google Neural voice is working!';
+    } else {
+      const err = await res.json().catch(()=>({}));
+      const msg = err.error?.message || `HTTP ${res.status}`;
+      result.style.color = 'var(--red)'; result.textContent = `✗ ${msg}`;
+    }
+  } catch(e) {
+    result.style.color = 'var(--red)'; result.textContent = `✗ Network error: ${e.message}`;
+  }
 }
 
 async function testElevenLabs() {
