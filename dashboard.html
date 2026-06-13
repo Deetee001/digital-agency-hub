@@ -1,0 +1,685 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>J.A.R.V.I.S. — Digital Agency Command Center</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#050a14;--bg2:#0a1628;--bg3:#0f1f3a;
+  --cyan:#00c8ff;--cdim:rgba(0,200,255,0.15);
+  --green:#00ff88;--orange:#ff8800;--red:#ff4444;
+  --text:#8bd4f0;--bright:#d4f0ff;
+  --border:rgba(0,200,255,0.3);--glow:0 0 20px rgba(0,200,255,0.4)
+}
+body{background:var(--bg);color:var(--text);font-family:'Courier New',monospace;
+  height:100vh;overflow:hidden;display:grid;grid-template-rows:56px 1fr}
+body::before{content:'';position:fixed;inset:0;
+  background-image:linear-gradient(rgba(0,200,255,0.04) 1px,transparent 1px),
+  linear-gradient(90deg,rgba(0,200,255,0.04) 1px,transparent 1px);
+  background-size:50px 50px;pointer-events:none;z-index:0}
+body::after{content:'';position:fixed;top:0;left:0;width:100%;height:2px;
+  background:linear-gradient(90deg,transparent,var(--cyan),transparent);
+  animation:scan 6s linear infinite;pointer-events:none;z-index:1;opacity:.5}
+@keyframes scan{0%{top:0}100%{top:100vh}}
+
+header{display:flex;align-items:center;justify-content:space-between;padding:0 18px;
+  background:rgba(10,22,40,.95);border-bottom:1px solid var(--border);
+  backdrop-filter:blur(10px);z-index:10;position:relative}
+.logo{font-size:1.2rem;font-weight:bold;color:var(--cyan);letter-spacing:4px;
+  text-shadow:var(--glow)}
+.logo span{color:var(--text);font-size:.7rem;letter-spacing:2px}
+.badge{font-size:.65rem;padding:3px 8px;border:1px solid var(--green);
+  color:var(--green);letter-spacing:2px;border-radius:2px;animation:pbadge 2s ease-in-out infinite}
+@keyframes pbadge{0%,100%{opacity:1}50%{opacity:.5}}
+#clock{font-size:.8rem;color:var(--text);letter-spacing:2px}
+.hbtn{background:transparent;border:1px solid var(--border);color:var(--cyan);
+  padding:5px 10px;cursor:pointer;font-size:.7rem;letter-spacing:1px;transition:all .2s;
+  font-family:inherit}
+.hbtn:hover{background:var(--cdim);border-color:var(--cyan);box-shadow:var(--glow)}
+
+main{display:grid;grid-template-columns:270px 1fr 270px;gap:1px;
+  background:var(--border);overflow:hidden;position:relative;z-index:2}
+.panel{background:rgba(5,10,20,.97);padding:14px;overflow-y:auto;
+  scrollbar-width:thin;scrollbar-color:var(--cyan) transparent}
+.panel::-webkit-scrollbar{width:3px}
+.panel::-webkit-scrollbar-thumb{background:var(--cyan)}
+.ptitle{font-size:.65rem;letter-spacing:4px;color:var(--cyan);text-transform:uppercase;
+  margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--border)}
+
+.stats-row{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:12px}
+.stat{background:var(--bg3);border:1px solid var(--border);padding:8px;text-align:center}
+.snum{font-size:1.6rem;color:var(--cyan);text-shadow:var(--glow);font-weight:bold}
+.slbl{font-size:.6rem;letter-spacing:2px;color:var(--text);margin-top:1px}
+
+.pg{margin-bottom:14px}
+.plbl{font-size:.58rem;letter-spacing:3px;color:var(--text);margin-bottom:6px;
+  display:flex;align-items:center;gap:6px}
+.pd{width:5px;height:5px;border-radius:50%;display:inline-block;flex-shrink:0}
+.p1{background:var(--cyan);box-shadow:0 0 6px var(--cyan)}
+.p2{background:var(--orange);box-shadow:0 0 6px var(--orange)}
+.p3{background:var(--green);box-shadow:0 0 6px var(--green)}
+.p4{background:#88f;box-shadow:0 0 6px #88f}
+
+.lc{background:var(--bg3);border:1px solid rgba(0,200,255,.1);border-left:2px solid var(--border);
+  padding:6px 8px;margin-bottom:3px;cursor:pointer;transition:all .2s;font-size:.72rem}
+.lc:hover{border-left-color:var(--cyan);background:var(--cdim)}
+.ln{color:var(--bright);font-size:.74rem;margin-bottom:1px}
+.lp{color:var(--text);font-size:.64rem;opacity:.7}
+.ls{float:right;font-size:.58rem;padding:1px 4px;border-radius:2px}
+.sn{background:rgba(255,68,68,.15);color:var(--red);border:1px solid rgba(255,68,68,.3)}
+.sf{background:rgba(0,100,255,.15);color:#6af;border:1px solid rgba(0,100,255,.3)}
+.so{background:rgba(255,136,0,.15);color:var(--orange);border:1px solid rgba(255,136,0,.3)}
+
+/* JARVIS CENTER */
+.jcenter{display:flex;flex-direction:column;align-items:center;
+  background:rgba(5,10,20,.99);padding:16px;gap:8px}
+.jtop{text-align:center;width:100%}
+.jsub{font-size:.6rem;letter-spacing:4px;color:var(--text);margin-bottom:3px}
+.jtitle{font-size:.95rem;letter-spacing:6px;color:var(--cyan);text-shadow:var(--glow)}
+
+.arc{position:relative;width:150px;height:150px;flex-shrink:0;cursor:pointer}
+.ar{position:absolute;border-radius:50%;border:2px solid var(--cyan);
+  top:50%;left:50%;transform:translate(-50%,-50%)}
+.ar1{width:150px;height:150px;border-color:rgba(0,200,255,.2);animation:rs 20s linear infinite}
+.ar2{width:122px;height:122px;border-color:rgba(0,200,255,.35);border-style:dashed;animation:rs 14s linear infinite reverse}
+.ar3{width:94px;height:94px;border-color:rgba(0,200,255,.55);animation:rs 9s linear infinite}
+.ar4{width:66px;height:66px;animation:pr 2s ease-in-out infinite}
+@keyframes rs{from{transform:translate(-50%,-50%) rotate(0)}to{transform:translate(-50%,-50%) rotate(360deg)}}
+@keyframes pr{
+  0%,100%{width:66px;height:66px;box-shadow:0 0 10px var(--cyan);border-color:var(--cyan)}
+  50%{width:72px;height:72px;box-shadow:0 0 30px var(--cyan),0 0 60px rgba(0,200,255,.3);border-color:#fff}}
+
+.micbtn{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  width:46px;height:46px;border-radius:50%;background:var(--cdim);
+  border:2px solid var(--cyan);cursor:pointer;display:flex;align-items:center;
+  justify-content:center;font-size:1.1rem;transition:all .2s;z-index:5}
+.micbtn:hover{background:rgba(0,200,255,.3);box-shadow:0 0 20px var(--cyan)}
+.micbtn.listening{background:rgba(0,255,136,.15);border-color:var(--green);
+  animation:pmic 1s ease-in-out infinite}
+.micbtn.speaking{background:rgba(255,136,0,.15);border-color:var(--orange)}
+@keyframes pmic{0%,100%{box-shadow:0 0 0 0 rgba(0,255,136,.4)}50%{box-shadow:0 0 0 14px rgba(0,255,136,0)}}
+
+.wf{display:none;align-items:center;justify-content:center;gap:3px;height:18px}
+.wf.on{display:flex}
+.wb{width:3px;background:var(--cyan);border-radius:2px;animation:wv .8s ease-in-out infinite}
+.wb:nth-child(1){animation-delay:.0s}.wb:nth-child(2){animation-delay:.1s}
+.wb:nth-child(3){animation-delay:.2s}.wb:nth-child(4){animation-delay:.3s}
+.wb:nth-child(5){animation-delay:.4s}.wb:nth-child(6){animation-delay:.3s}
+.wb:nth-child(7){animation-delay:.2s}.wb:nth-child(8){animation-delay:.1s}
+.wb:nth-child(9){animation-delay:.0s}
+@keyframes wv{0%,100%{height:3px}50%{height:15px}}
+
+.vstatus{text-align:center;font-size:.62rem;letter-spacing:2px;color:var(--text);min-height:20px}
+
+.conv{width:100%;flex:1;overflow-y:auto;padding:4px 0;min-height:0;
+  scrollbar-width:thin;scrollbar-color:var(--cyan) transparent}
+.conv::-webkit-scrollbar{width:3px}
+.conv::-webkit-scrollbar-thumb{background:var(--cyan)}
+
+.msg{margin-bottom:10px;display:flex;gap:8px;align-items:flex-start;animation:ma .3s ease-out}
+@keyframes ma{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.mi{font-size:.9rem;margin-top:2px;flex-shrink:0}
+.mc{flex:1}
+.mlbl{font-size:.58rem;letter-spacing:2px;color:var(--text);margin-bottom:2px}
+.mt{font-size:.8rem;line-height:1.5}
+.msg.user .mt{color:var(--bright)}
+.msg.jarvis .mt{color:var(--cyan)}
+.msg.sys .mt{color:rgba(255,255,255,.35);font-size:.7rem;font-style:italic}
+
+.vbar{width:100%;display:flex;gap:6px}
+.vi{flex:1;background:var(--bg3);border:1px solid var(--border);color:var(--bright);
+  padding:9px 12px;font-family:inherit;font-size:.8rem;outline:none}
+.vi:focus{border-color:var(--cyan);box-shadow:0 0 10px rgba(0,200,255,.2)}
+.vbtn{background:var(--cdim);border:1px solid var(--cyan);color:var(--cyan);
+  padding:9px 14px;cursor:pointer;font-size:.75rem;font-family:inherit;
+  transition:all .2s;letter-spacing:1px}
+.vbtn:hover{background:rgba(0,200,255,.3)}
+
+.cur{display:inline-block;width:7px;height:13px;background:var(--cyan);
+  animation:bl .8s step-end infinite;vertical-align:text-bottom;margin-left:2px}
+@keyframes bl{0%,100%{opacity:1}50%{opacity:0}}
+
+/* RIGHT */
+.svc{background:var(--bg3);border:1px solid rgba(0,200,255,.12);
+  padding:9px 11px;margin-bottom:7px}
+.svn{font-size:.72rem;color:var(--cyan);letter-spacing:1px;margin-bottom:3px}
+.svp{font-size:.68rem;color:var(--green)}
+.svd{font-size:.62rem;color:var(--text);margin-top:2px;opacity:.7}
+
+.abtn{display:block;width:100%;background:transparent;border:1px solid var(--border);
+  color:var(--text);padding:7px 10px;margin-bottom:5px;cursor:pointer;
+  font-size:.7rem;font-family:inherit;letter-spacing:1px;text-align:left;transition:all .2s}
+.abtn:hover{border-color:var(--cyan);color:var(--cyan);background:var(--cdim)}
+
+.wk{background:var(--bg3);border:1px solid var(--border);padding:9px;margin-bottom:7px}
+.wi{display:flex;justify-content:space-between;font-size:.65rem;padding:3px 0;
+  border-bottom:1px solid rgba(0,200,255,.05)}
+.wi:last-child{border-bottom:none}
+.wd{color:var(--cyan);letter-spacing:1px}
+
+.rev{background:var(--bg3);border:1px solid var(--border);padding:9px;margin-bottom:7px}
+.rr{display:flex;justify-content:space-between;font-size:.65rem;margin-bottom:4px}
+.rl{color:var(--text)}.ra{color:var(--green)}
+.rt{height:3px;background:rgba(0,200,255,.1);border-radius:2px;overflow:hidden}
+.rf{height:100%;background:linear-gradient(90deg,var(--cyan),var(--green));border-radius:2px}
+
+.sep{height:1px;background:var(--border);margin:10px 0}
+
+/* MODAL */
+.mo{display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);
+  z-index:100;align-items:center;justify-content:center}
+.mo.on{display:flex}
+.md{background:var(--bg2);border:1px solid var(--cyan);padding:28px;width:420px;
+  box-shadow:0 0 50px rgba(0,200,255,.35)}
+.md h2{color:var(--cyan);letter-spacing:3px;font-size:.95rem;margin-bottom:20px}
+.md label{display:block;font-size:.68rem;letter-spacing:2px;color:var(--text);margin-bottom:5px}
+.md input,.md select{width:100%;background:var(--bg3);border:1px solid var(--border);
+  color:var(--bright);padding:9px 11px;font-family:inherit;font-size:.8rem;
+  outline:none;margin-bottom:14px}
+.md input:focus,.md select:focus{border-color:var(--cyan)}
+.mbtn{background:var(--cdim);border:1px solid var(--cyan);color:var(--cyan);
+  padding:10px 20px;cursor:pointer;font-family:inherit;letter-spacing:2px;
+  font-size:.8rem;width:100%;transition:all .2s}
+.mbtn:hover{background:rgba(0,200,255,.3)}
+.mnote{font-size:.65rem;color:var(--text);margin-top:10px;opacity:.6;text-align:center}
+</style>
+</head>
+<body>
+
+<!-- SETTINGS MODAL -->
+<div class="mo on" id="settingsModal">
+  <div class="md">
+    <h2>⚡ SYSTEM INITIALIZATION</h2>
+    <label>ANTHROPIC API KEY</label>
+    <input type="password" id="apiKeyInput" placeholder="sk-ant-api03-..." autocomplete="off">
+    <label>RESPONSE SPEED</label>
+    <select id="modelSelect">
+      <option value="claude-haiku-4-5">Haiku — Fastest (best for voice)</option>
+      <option value="claude-sonnet-4-6" selected>Sonnet — Balanced</option>
+      <option value="claude-opus-4-6">Opus — Most intelligent</option>
+    </select>
+    <label>YOUR BUSINESS NAME</label>
+    <input type="text" id="bizNameInput" placeholder="NorthCoast Digital" value="NorthCoast Digital">
+    <button class="mbtn" onclick="initSystem()">▶ INITIALIZE J.A.R.V.I.S.</button>
+    <p class="mnote">API key is stored locally in your browser only. Never shared.</p>
+  </div>
+</div>
+
+<!-- HEADER -->
+<header>
+  <div style="display:flex;align-items:center;gap:16px">
+    <div class="logo" id="logoEl">J.A.R.V.I.S. <span>// DIGITAL AGENCY OS</span></div>
+    <div class="badge" id="sysBadge">● STANDBY</div>
+  </div>
+  <div style="display:flex;align-items:center;gap:12px">
+    <div id="clock">--:--:-- ---</div>
+    <button class="hbtn" onclick="document.getElementById('settingsModal').classList.add('on')">⚙ SETTINGS</button>
+    <button class="hbtn" onclick="clearConv()">✕ CLEAR</button>
+  </div>
+</header>
+
+<!-- MAIN -->
+<main>
+
+<!-- LEFT: LEADS -->
+<div class="panel">
+  <div class="ptitle">▸ LEAD INTELLIGENCE</div>
+  <div class="stats-row">
+    <div class="stat"><div class="snum">25</div><div class="slbl">TOTAL LEADS</div></div>
+    <div class="stat"><div class="snum" style="color:var(--green)" id="clientCount">0</div><div class="slbl">CLIENTS</div></div>
+  </div>
+
+  <div class="pg">
+    <div class="plbl"><span class="pd p1"></span>P1 — OBERLIN / NO WEBSITE</div>
+    <div class="lc" onclick="askLead('Main Street Grille, a diner in Oberlin at (440) 776-9004, no website')"><span class="ls sn">NO SITE</span><div class="ln">Main Street Grille</div><div class="lp">(440) 776-9004</div></div>
+    <div class="lc" onclick="askLead('Catrinas Oberlin, a Mexican restaurant at (440) 775-0050, no website')"><span class="ls sn">NO SITE</span><div class="ln">Catrinas Oberlin</div><div class="lp">(440) 775-0050</div></div>
+    <div class="lc" onclick="askLead('Ying\'s Asian Cuisine, Chinese restaurant at (440) 774-9393, no website')"><span class="ls sn">NO SITE</span><div class="ln">Ying's Asian Cuisine</div><div class="lp">(440) 774-9393</div></div>
+    <div class="lc" onclick="askLead('Knight Jack Cleaners, dry cleaning at (440) 774-6592, no website')"><span class="ls sn">NO SITE</span><div class="ln">Knight Jack Cleaners</div><div class="lp">(440) 774-6592</div></div>
+    <div class="lc" onclick="askLead('S and S Auto Repair in Oberlin, auto shop, no website, in business since 1994')"><span class="ls sn">NO SITE</span><div class="ln">S & S Auto Repair</div><div class="lp">YP Listed</div></div>
+    <div class="lc" onclick="askLead('Johnson\'s Automotive in Oberlin, no website')"><span class="ls sn">NO SITE</span><div class="ln">Johnson's Automotive</div><div class="lp">YP Listed</div></div>
+    <div class="lc" onclick="askLead('Gary\'s Body Shop, auto body in Oberlin, no website')"><span class="ls sn">NO SITE</span><div class="ln">Gary's Body Shop</div><div class="lp">YP Listed</div></div>
+    <div class="lc" onclick="askLead('PC Automotive in Oberlin, family-owned since 1976, no website')"><span class="ls sn">NO SITE</span><div class="ln">PC Automotive</div><div class="lp">Local Directory</div></div>
+    <div class="lc" onclick="askLead('Main Street Antiques in downtown Oberlin, Facebook page only, no website')"><span class="ls sf">FB ONLY</span><div class="ln">Main Street Antiques</div><div class="lp">Facebook Only</div></div>
+    <div class="lc" onclick="askLead('Watson Hardware, a century-old hardware store in downtown Oberlin, no website')"><span class="ls sn">NO SITE</span><div class="ln">Watson Hardware</div><div class="lp">Local Directory</div></div>
+    <div class="lc" onclick="askLead('Lorenzo\'s Pizzeria, Italian pizza in downtown Oberlin, no website')"><span class="ls sn">NO SITE</span><div class="ln">Lorenzo's Pizzeria</div><div class="lp">Local Directory</div></div>
+    <div class="lc" onclick="askLead('Anything Green Lawn Care in Oberlin, Facebook page only, no website')"><span class="ls sf">FB ONLY</span><div class="ln">Anything Green Lawn Care</div><div class="lp">Facebook Only</div></div>
+  </div>
+
+  <div class="pg">
+    <div class="plbl"><span class="pd p2"></span>P2 — OUTDATED SITES</div>
+    <div class="lc" onclick="askLead('Brickyard Bar and Grill in Oberlin at (440) 775-0020, has a bare-bones website with no online ordering')"><span class="ls so">OUTDATED</span><div class="ln">Brickyard Bar & Grill</div><div class="lp">(440) 775-0020</div></div>
+    <div class="lc" onclick="askLead('Oberlin IGA Foodliner at (440) 774-1002, has a very outdated website with just a contact page')"><span class="ls so">OUTDATED</span><div class="ln">Oberlin IGA Foodliner</div><div class="lp">(440) 774-1002</div></div>
+  </div>
+
+  <div class="pg">
+    <div class="plbl"><span class="pd p3"></span>P3 — LORAIN, OH</div>
+    <div class="lc" onclick="askLead('Mutt and Jeff\'s, a classic local diner in Lorain at (440) 282-4080, no website')"><span class="ls sn">NO SITE</span><div class="ln">Mutt & Jeff's</div><div class="lp">(440) 282-4080</div></div>
+    <div class="lc" onclick="askLead('Diso\'s Bistro in Lorain at (440) 282-1195, no website')"><span class="ls sn">NO SITE</span><div class="ln">Diso's Bistro</div><div class="lp">(440) 282-1195</div></div>
+    <div class="lc" onclick="askLead('Scorcher\'s Casual Eatery in Lorain at (440) 244-0556, no website')"><span class="ls sn">NO SITE</span><div class="ln">Scorcher's Eatery</div><div class="lp">(440) 244-0556</div></div>
+    <div class="lc" onclick="askLead('Speak of the Devil bar in Lorain at (440) 434-4286, Facebook only')"><span class="ls sf">FB ONLY</span><div class="ln">Speak of the Devil</div><div class="lp">(440) 434-4286</div></div>
+  </div>
+
+  <div class="pg">
+    <div class="plbl"><span class="pd p4"></span>P4 — ELYRIA, OH</div>
+    <div class="lc" onclick="askLead('Wolfey\'s Bistro and Pub in Elyria, no website found')"><span class="ls sn">NO SITE</span><div class="ln">Wolfey's Bistro & Pub</div><div class="lp">Directory Listed</div></div>
+    <div class="lc" onclick="askLead('Black River Tavern in Elyria, no website found')"><span class="ls sn">NO SITE</span><div class="ln">Black River Tavern</div><div class="lp">Directory Listed</div></div>
+  </div>
+</div>
+
+<!-- CENTER: JARVIS -->
+<div class="jcenter">
+  <div class="jtop">
+    <div class="jsub">JUST A RATHER VERY INTELLIGENT SYSTEM</div>
+    <div class="jtitle">J.A.R.V.I.S.</div>
+  </div>
+
+  <div class="arc" onclick="toggleMic()" title="Click to toggle voice">
+    <div class="ar ar1"></div>
+    <div class="ar ar2"></div>
+    <div class="ar ar3"></div>
+    <div class="ar ar4"></div>
+    <button class="micbtn" id="micBtn">🎤</button>
+  </div>
+
+  <div class="wf" id="wf">
+    <div class="wb"></div><div class="wb"></div><div class="wb"></div>
+    <div class="wb"></div><div class="wb"></div><div class="wb"></div>
+    <div class="wb"></div><div class="wb"></div><div class="wb"></div>
+  </div>
+
+  <div class="vstatus" id="vstatus">Click the arc reactor or say "Hey Jarvis" to activate</div>
+
+  <div class="conv" id="conv">
+    <div class="msg jarvis">
+      <div class="mi">⬡</div>
+      <div class="mc">
+        <div class="mlbl">J.A.R.V.I.S. // READY</div>
+        <div class="mt">All systems nominal. I have 25 leads loaded across Oberlin, Lorain, and Elyria. Click a lead card on the left, use the quick commands on the right, or speak to me directly. How can I assist you today?</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="vbar">
+    <input class="vi" id="ti" placeholder="Type a command or question..." onkeydown="if(event.key==='Enter')send()">
+    <button class="vbtn" onclick="send()">SEND ▶</button>
+  </div>
+</div>
+
+<!-- RIGHT: SERVICES & ACTIONS -->
+<div class="panel">
+  <div class="ptitle">▸ SERVICE LINES</div>
+  <div class="svc"><div class="svn">🌐 WEB DESIGN</div><div class="svp">$299 — $1,500 one-time</div><div class="svd">Starter · Standard · Premium · Redesign</div></div>
+  <div class="svc"><div class="svn">📊 BI & ANALYTICS</div><div class="svp">$299 — $1,200 + $199–$499/mo</div><div class="svd">Dashboards · Revenue intel · KPI reporting</div></div>
+  <div class="svc"><div class="svn">☁ CLOUD INFRASTRUCTURE</div><div class="svp">$799 — $2,500</div><div class="svd">DB setup · Migration · Pipelines · Security</div></div>
+  <div class="svc"><div class="svn">⚡ AUTOMATION</div><div class="svp">$299 — $2,000</div><div class="svd">Zapier · Make · n8n · Python scripts</div></div>
+  <div class="svc"><div class="svn">🤝 NONPROFIT BUNDLE</div><div class="svp">$999 — $2,999</div><div class="svd">Web + DB infra + Automation + Reports</div></div>
+
+  <div class="sep"></div>
+  <div class="ptitle">▸ OUTREACH SCHEDULE</div>
+  <div class="wk">
+    <div class="wi"><span class="wd">WK 1</span><span>Auto shops (5 targets)</span></div>
+    <div class="wi"><span class="wd">WK 2</span><span>Restaurants & diners</span></div>
+    <div class="wi"><span class="wd">WK 3</span><span>Retail & services</span></div>
+    <div class="wi"><span class="wd">WK 4</span><span>Lorain & Elyria expansion</span></div>
+  </div>
+
+  <div class="sep"></div>
+  <div class="ptitle">▸ REVENUE TARGETS</div>
+  <div class="rev">
+    <div class="rr"><span class="rl">Month 1–2</span><span class="ra">$800–$1,500</span></div>
+    <div class="rt"><div class="rf" style="width:12%"></div></div>
+    <div class="rr" style="margin-top:6px"><span class="rl">Month 3–4</span><span class="ra">$2,000–$3,000</span></div>
+    <div class="rt"><div class="rf" style="width:28%"></div></div>
+    <div class="rr" style="margin-top:6px"><span class="rl">Month 6</span><span class="ra">$4,000–$5,000</span></div>
+    <div class="rt"><div class="rf" style="width:48%"></div></div>
+    <div class="rr" style="margin-top:6px"><span class="rl">Month 12</span><span class="ra">$8,000–$12,000</span></div>
+    <div class="rt"><div class="rf" style="width:100%"></div></div>
+  </div>
+
+  <div class="sep"></div>
+  <div class="ptitle">▸ QUICK COMMANDS</div>
+  <button class="abtn" onclick="qcmd('What are my top 5 leads to contact first and why?')">🎯 Top 5 priority leads</button>
+  <button class="abtn" onclick="qcmd('Draft a cold email for Main Street Grille')">✉ Draft email: Main St Grille</button>
+  <button class="abtn" onclick="qcmd('Give me the phone call script for cold calling auto shops')">📞 Call script: auto shops</button>
+  <button class="abtn" onclick="qcmd('Draft a text message for Catrinas Oberlin')">💬 Text template: Catrinas</button>
+  <button class="abtn" onclick="qcmd('What should I focus on this week for outreach?')">📋 This week\'s focus</button>
+  <button class="abtn" onclick="qcmd('Give me a BI analytics pitch email for a nonprofit organization')">📊 Nonprofit BI pitch email</button>
+  <button class="abtn" onclick="qcmd('What objections will businesses raise and how do I handle them?')">🛡 Objection handling tips</button>
+  <button class="abtn" onclick="qcmd('Give me a quick 30-second elevator pitch for my services')">🚀 Elevator pitch</button>
+</div>
+
+</main>
+
+<script>
+// ─── CONFIG ────────────────────────────────────────────────────────────────
+const SYSTEM = `You are J.A.R.V.I.S. (Just A Rather Very Intelligent System), the AI assistant for a Business Intelligence Analyst in Oberlin, Ohio who is launching a full-service digital agency.
+
+OWNER: BI Analyst | Location: Oberlin, OH | Building: digital agency
+
+SERVICES & PRICING:
+- Web Design: $299–$1,500 one-time | $49–$99/mo maintenance
+- BI & Analytics: $299–$1,200 dashboards | $199–$499/mo reporting
+- Cloud Infrastructure: $799–$2,500 setup
+- Process Automation: $299–$2,000
+- Nonprofit Bundle: $999–$2,999
+
+LEADS (25 total):
+P1 Oberlin no-website: Main Street Grille (440-776-9004), Catrinas (440-775-0050), Ying's Asian (440-774-9393), Knight Jack Cleaners (440-774-6592), Main Street Antiques (FB only), Watson Hardware, S&S Auto, Johnson's Auto, Gary's Body Shop, D&D Auto, PC Automotive (since 1976), Lorenzo's Pizza, Uptown Clothing, All Things Great, Oberlin Tobacco & Vape, Anything Green Lawn Care (FB only)
+P2 Oberlin outdated: Brickyard Bar & Grill (440-775-0020, bare-bones site), Oberlin IGA (440-774-1002, outdated)
+P3 Lorain: Mutt & Jeff's (440-282-4080), Diso's Bistro (440-282-1195), Scorcher's (440-244-0556), Speak of the Devil (440-434-4286, FB only), Nancy's Diner
+P4 Elyria: Wolfey's Bistro, Black River Tavern
+
+OUTREACH TEMPLATES (brief):
+Cold email: "I noticed [Business] doesn't have a website. I'm a local web designer in Oberlin — sites from $299 that get you on Google. Free mockup?"
+Call: "Hi, I'm [Name] — local web designer. I tried to find [Business] online and noticed there's no website yet..."
+Text: "Hi, I'm a local web designer in Oberlin. [Business] doesn't have a website yet — I build them from $299. Want a free mockup?"
+Facebook-only: "Great FB page — but FB can change overnight. A real website costs $299 and gives you Google visibility permanently."
+
+WEEKLY OUTREACH: Wk1=Auto shops | Wk2=Restaurants | Wk3=Retail/services | Wk4=Lorain/Elyria
+Contact sequence: Day1 call → Day2 email → Day4 text → Day7 follow-up → Day14 final
+
+BUSINESS NAME OPTIONS: NorthCoast Digital, Clarity Digital, Watershed Digital
+
+STYLE RULES:
+- Speak like J.A.R.V.I.S. — intelligent, slightly formal, concise
+- Occasionally address owner as "sir"
+- Responses will be SPOKEN ALOUD — keep them short and conversational (2-4 sentences max unless drafting a template)
+- When drafting emails/texts/scripts, give the complete template
+- Be specific and actionable`;
+
+let history = [];
+let apiKey = '';
+let model = 'claude-sonnet-4-6';
+let bizName = 'NorthCoast Digital';
+let listening = false;
+let speaking = false;
+let recog = null;
+let speechQ = [];
+
+// ─── INIT ──────────────────────────────────────────────────────────────────
+function initSystem() {
+  const k = document.getElementById('apiKeyInput').value.trim();
+  if (!k) { alert('Enter your Anthropic API key to continue.'); return; }
+  apiKey = k;
+  model = document.getElementById('modelSelect').value;
+  bizName = document.getElementById('bizNameInput').value.trim() || 'NorthCoast Digital';
+  localStorage.setItem('j_key', apiKey);
+  localStorage.setItem('j_model', model);
+  localStorage.setItem('j_biz', bizName);
+  document.getElementById('settingsModal').classList.remove('on');
+  goOnline();
+  startRecog();
+  addMsg('jarvis', `J.A.R.V.I.S. online, sir. ${bizName} command center is live. 25 leads in the pipeline. Priority one is your auto shops and restaurants in Oberlin — no web presence at all. Say "Hey Jarvis" anytime or click the reactor to talk. What do you want to tackle?`);
+}
+
+function goOnline() {
+  const b = document.getElementById('sysBadge');
+  b.textContent = '● ONLINE';
+  b.style.color = 'var(--green)';
+  b.style.borderColor = 'var(--green)';
+  document.getElementById('logoEl').innerHTML = `J.A.R.V.I.S. <span>// ${bizName.toUpperCase()}</span>`;
+}
+
+window.addEventListener('load', () => {
+  const k = localStorage.getItem('j_key');
+  if (k) {
+    apiKey = k;
+    model = localStorage.getItem('j_model') || 'claude-sonnet-4-6';
+    bizName = localStorage.getItem('j_biz') || 'NorthCoast Digital';
+    document.getElementById('apiKeyInput').value = k;
+    document.getElementById('modelSelect').value = model;
+    document.getElementById('bizNameInput').value = bizName;
+    document.getElementById('settingsModal').classList.remove('on');
+    goOnline();
+    startRecog();
+  }
+  tick();
+  setInterval(tick, 1000);
+});
+
+function tick() {
+  const n = new Date();
+  document.getElementById('clock').textContent =
+    n.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit'}) +
+    ' ' + n.toLocaleDateString('en-US',{month:'short',day:'numeric'});
+}
+
+// ─── CLAUDE API ────────────────────────────────────────────────────────────
+async function callClaude(userMsg) {
+  if (!apiKey) { document.getElementById('settingsModal').classList.add('on'); return; }
+  history.push({role:'user', content: userMsg});
+  // Trim history to last 20 turns to stay within limits
+  if (history.length > 40) history = history.slice(-40);
+
+  const msgId = 'j' + Date.now();
+  addMsg('jarvis', '', msgId);
+  setStatus('Thinking...');
+
+  let full = '';
+  let sentBuf = '';
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model, max_tokens: 1024, stream: true,
+        system: SYSTEM, messages: history
+      })
+    });
+
+    if (!res.ok) {
+      const e = await res.json().catch(()=>({error:{message:'HTTP '+res.status}}));
+      throw new Error(e.error?.message || 'API error ' + res.status);
+    }
+
+    const reader = res.body.getReader();
+    const dec = new TextDecoder();
+    let buf = '';
+
+    while (true) {
+      const {done, value} = await reader.read();
+      if (done) break;
+      buf += dec.decode(value, {stream: true});
+      const lines = buf.split('\n');
+      buf = lines.pop();
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue;
+        const d = line.slice(6).trim();
+        if (!d) continue;
+        try {
+          const ev = JSON.parse(d);
+          if (ev.type === 'content_block_delta' && ev.delta?.type === 'text_delta') {
+            const t = ev.delta.text;
+            full += t;
+            sentBuf += t;
+            updateMsg(msgId, full);
+            // Queue speech sentence by sentence
+            let m;
+            while ((m = sentBuf.match(/^[^.!?]*[.!?]+\s*/))) {
+              qSpeak(m[0].trim());
+              sentBuf = sentBuf.slice(m[0].length);
+            }
+          } else if (ev.type === 'message_stop') {
+            if (sentBuf.trim()) qSpeak(sentBuf.trim());
+          }
+        } catch(e) {}
+      }
+    }
+
+    history.push({role:'assistant', content: full});
+    setStatus(listening ? 'Listening... say "Hey Jarvis" to activate' : 'Click reactor to speak');
+  } catch(err) {
+    updateMsg(msgId, 'System error: ' + err.message + '. Check your API key in Settings.');
+    setStatus('Error — check Settings');
+    console.error(err);
+  }
+}
+
+// ─── SPEECH SYNTHESIS ──────────────────────────────────────────────────────
+function qSpeak(text) {
+  if (!text) return;
+  speechQ.push(text);
+  if (!speaking) runQueue();
+}
+
+function runQueue() {
+  if (!speechQ.length) { speaking = false; setMicState(listening?'listening':'idle'); return; }
+  speaking = true;
+  setMicState('speaking');
+  const utt = new SpeechSynthesisUtterance(speechQ.shift());
+  const voices = speechSynthesis.getVoices();
+  const want = ['Microsoft David','Google UK English Male','Microsoft George','Microsoft Mark','Daniel'];
+  let v = null;
+  for (const n of want) { v = voices.find(x => x.name.includes(n)); if (v) break; }
+  if (!v) v = voices.find(x => x.lang.startsWith('en') && /male/i.test(x.name));
+  if (v) utt.voice = v;
+  utt.rate = 0.93; utt.pitch = 0.82; utt.volume = 1;
+  utt.onend = utt.onerror = () => runQueue();
+  speechSynthesis.speak(utt);
+}
+
+function stopSpeak() {
+  speechSynthesis.cancel();
+  speechQ = [];
+  speaking = false;
+  setMicState(listening ? 'listening' : 'idle');
+}
+
+// ─── SPEECH RECOGNITION ────────────────────────────────────────────────────
+function startRecog() {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) { setStatus('Voice not supported — use Chrome or Edge'); return; }
+  recog = new SR();
+  recog.continuous = true;
+  recog.interimResults = true;
+  recog.lang = 'en-US';
+
+  recog.onresult = e => {
+    let interim = '', final = '';
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      if (e.results[i].isFinal) final += e.results[i][0].transcript;
+      else interim += e.results[i][0].transcript;
+    }
+    if (interim) setStatus(`Hearing: "${interim.trim()}"`);
+    if (final) {
+      const t = final.trim();
+      const low = t.toLowerCase();
+      if (low.includes('jarvis') || listening) {
+        const clean = t.replace(/hey jarvis|jarvis/gi, '').trim();
+        if (clean.length > 2) {
+          stopSpeak();
+          addMsg('user', t);
+          document.getElementById('ti').value = '';
+          callClaude(t);
+        } else {
+          setStatus('Standing by...');
+          qSpeak('Yes sir, how can I assist?');
+        }
+      }
+    }
+  };
+
+  recog.onerror = e => { if (e.error !== 'no-speech') setStatus('Voice: ' + e.error); };
+  recog.onend = () => { if (listening) { try { recog.start(); } catch(e) {} } };
+
+  try {
+    recog.start();
+    listening = true;
+    setMicState('listening');
+    setStatus('Listening... say "Hey Jarvis" to activate');
+  } catch(e) {
+    setStatus('Click the reactor to activate voice');
+  }
+}
+
+function toggleMic() {
+  if (speaking) { stopSpeak(); return; }
+  if (!recog) { startRecog(); return; }
+  listening = !listening;
+  if (listening) {
+    try { recog.start(); } catch(e) {}
+    setMicState('listening');
+    setStatus('Listening... say "Hey Jarvis" + your question');
+  } else {
+    recog.stop();
+    setMicState('idle');
+    setStatus('Voice paused — click reactor to resume');
+  }
+}
+
+// ─── UI ────────────────────────────────────────────────────────────────────
+function setStatus(t) { document.getElementById('vstatus').textContent = t; }
+
+function setMicState(s) {
+  const btn = document.getElementById('micBtn');
+  const wf = document.getElementById('wf');
+  btn.classList.remove('listening','speaking');
+  if (s === 'listening') { btn.classList.add('listening'); btn.textContent = '🎙'; wf.classList.add('on'); }
+  else if (s === 'speaking') { btn.classList.add('speaking'); btn.textContent = '🔊'; wf.classList.add('on'); }
+  else { btn.textContent = '🎤'; wf.classList.remove('on'); }
+}
+
+function addMsg(type, text, id) {
+  const c = document.getElementById('conv');
+  const d = document.createElement('div');
+  d.className = 'msg ' + type;
+  if (id) d.id = id;
+  const icon = {user:'◆', jarvis:'⬡', sys:'·'}[type] || '·';
+  const lbl = {user:'YOU', jarvis:'J.A.R.V.I.S.', sys:'SYSTEM'}[type] || type.toUpperCase();
+  d.innerHTML = `<div class="mi">${icon}</div><div class="mc"><div class="mlbl">${lbl}</div>`+
+    `<div class="mt">${fmt(text)}${text?'':'<span class="cur"></span>'}</div></div>`;
+  c.appendChild(d);
+  c.scrollTop = c.scrollHeight;
+  return d;
+}
+
+function updateMsg(id, text) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const t = el.querySelector('.mt');
+  t.innerHTML = fmt(text) + '<span class="cur"></span>';
+  el.closest('.conv').scrollTop = el.closest('.conv').scrollHeight;
+}
+
+function fmt(t) {
+  if (!t) return '';
+  return t
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/\*\*(.*?)\*\*/g,'<strong style="color:var(--bright)">$1</strong>')
+    .replace(/`(.*?)`/g,'<code style="background:var(--bg3);padding:1px 4px;color:var(--cyan)">$1</code>')
+    .replace(/\n/g,'<br>');
+}
+
+function send() {
+  const i = document.getElementById('ti');
+  const t = i.value.trim();
+  if (!t) return;
+  i.value = '';
+  addMsg('user', t);
+  callClaude(t);
+}
+
+function qcmd(cmd) { addMsg('user', cmd); callClaude(cmd); }
+
+function askLead(ctx) {
+  const cmd = `Tell me the best outreach approach for this lead: ${ctx}`;
+  addMsg('user', cmd);
+  callClaude(cmd);
+}
+
+function clearConv() {
+  document.getElementById('conv').innerHTML = '';
+  history = [];
+  addMsg('jarvis', 'Conversation cleared. All systems ready.');
+}
+</script>
+</body>
+</html>
