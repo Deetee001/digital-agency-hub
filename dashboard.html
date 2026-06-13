@@ -590,25 +590,19 @@ Rules for actions:
 - When user asks to add a lead → confirm verbally, then append [ADD:...] tag
 - CRITICAL: Action tags must NEVER appear in your spoken text. Pretend they don't exist.
 
-══ CRITICAL: HOW ACTIONS ACTUALLY WORK ══
-You CANNOT browse the internet. You CANNOT search Google and read results.
-[SEARCH:query] only opens a Google tab for the USER to look at — YOU never see the results.
-[ADD:...] and [DELETE:...] execute instantly when you include them in your response.
+══ YOUR CAPABILITIES ══
+You have REAL web search. Use the web_search tool whenever you need current information,
+to find real local businesses, verify phone numbers, or research leads.
 
-WHEN ASKED TO "FIND", "SEARCH FOR", OR "ADD" MORE LEADS:
-- DO NOT say "I'm searching" or "On it, searching..." — you are not actually searching anything
-- DO NOT promise action and then deliver nothing
-- INSTEAD: immediately generate [ADD:...] tags in your response using your own knowledge
-- Use real types of local small businesses in OH that typically have no website:
-  barbershops, nail salons, tire shops, tax preparers, daycares, florists, bakeries,
-  dry cleaners, funeral homes, insurance agents, law offices, printing shops, pawn shops,
-  laundromats, alterations shops, dog groomers, dance studios, music teachers, etc.
-- Assign them plausible Oberlin/Lorain/Elyria locations and P2/P3/P4 priority
-- If asked for 5 leads: say ONE short sentence like "Adding five leads now, sir." then append 5 [ADD:...] tags
-- The leads appear instantly in the pipeline — no searching needed
+WHEN ASKED TO FIND/ADD MORE LEADS:
+1. Use web_search to search for real businesses — e.g. "barbershops in Oberlin OH no website"
+2. From the results, identify real businesses that match our criteria (no/weak web presence)
+3. Add them using [ADD:Name|Phone|Location|Priority|Notes] tags in your response
+4. Tell the user what you found: "Found three auto shops in Lorain with no websites, sir. Adding them now."
 
-ONLY use [SEARCH:query] when the user specifically asks to open a Google search for THEM to look at.
-NEVER use [SEARCH:query] as a substitute for actually adding leads.
+[ADD:...] and [DELETE:...] execute instantly when included in your response.
+[SEARCH:query] opens a Google tab for the USER — only use this if they specifically ask to open a search.
+Prefer using your built-in web_search tool to find info yourself rather than opening tabs for the user.
 
 ═══ RESPONSE STYLE ═══
 • Your responses are SPOKEN ALOUD via ElevenLabs — keep them SHORT (1-3 sentences for voice responses)
@@ -697,7 +691,6 @@ function tick() {
 async function callClaude(userMsg) {
   if (!apiKey) { document.getElementById('settingsModal').classList.add('on'); return; }
   history.push({role:'user', content: userMsg});
-  // Trim history to last 20 turns to stay within limits
   if (history.length > 40) history = history.slice(-40);
 
   const msgId = 'j' + Date.now();
@@ -707,6 +700,8 @@ async function callClaude(userMsg) {
 
   let full = '';
   let sentBuf = '';
+  let currentBlockType = null;
+  let searchQuery = '';
 
   try {
     const res = await fetch('https://api.anthropic.com/v1/messages', {
@@ -718,8 +713,9 @@ async function callClaude(userMsg) {
         'anthropic-dangerous-direct-browser-access': 'true'
       },
       body: JSON.stringify({
-        model, max_tokens: 1024, stream: true,
-        system: SYSTEM, messages: history
+        model, max_tokens: 2048, stream: true,
+        system: SYSTEM, messages: history,
+        tools: [{ type: 'web_search_20250305', name: 'web_search', max_uses: 3 }]
       })
     });
 
@@ -744,22 +740,50 @@ async function callClaude(userMsg) {
         if (!d) continue;
         try {
           const ev = JSON.parse(d);
-          if (ev.type === 'content_block_delta' && ev.delta?.type === 'text_delta') {
-            if (full === '') { setMicState('idle'); setStatus('Responding...'); } // clear thinking spinner on first token
-            const t = ev.delta.text;
-            full += t;
-            sentBuf += t;
-            updateMsg(msgId, full);
-            // Queue speech sentence by sentence
-            let m;
-            while ((m = sentBuf.match(/^[^.!?]*[.!?]+\s*/))) {
-              const spoken = stripActions(m[0].trim());
-              if (spoken) qSpeak(spoken);
-              sentBuf = sentBuf.slice(m[0].length);
+
+          // Track which type of content block we're inside
+          if (ev.type === 'content_block_start') {
+            currentBlockType = ev.content_block?.type;
+            if (currentBlockType === 'tool_use' && ev.content_block?.name === 'web_search') {
+              searchQuery = '';
+              setMicState('thinking');
+              setStatus('Searching the web...');
+            } else if (currentBlockType === 'tool_result') {
+              setStatus('Reading results...');
             }
-          } else if (ev.type === 'message_stop') {
+          }
+
+          else if (ev.type === 'content_block_delta') {
+            if (currentBlockType === 'text' && ev.delta?.type === 'text_delta') {
+              if (full === '') { setMicState('idle'); setStatus('Responding...'); }
+              const t = ev.delta.text;
+              full += t;
+              sentBuf += t;
+              updateMsg(msgId, full);
+              let m;
+              while ((m = sentBuf.match(/^[^.!?]*[.!?]+\s*/))) {
+                const spoken = stripActions(m[0].trim());
+                if (spoken) qSpeak(spoken);
+                sentBuf = sentBuf.slice(m[0].length);
+              }
+            } else if (currentBlockType === 'tool_use' && ev.delta?.type === 'input_json_delta') {
+              // Build up search query for live status display
+              searchQuery += ev.delta.partial_json || '';
+              try {
+                const q = JSON.parse(searchQuery);
+                if (q.query) setStatus(`Searching: "${q.query}"`);
+              } catch(e) {}
+            }
+          }
+
+          else if (ev.type === 'content_block_stop') {
+            currentBlockType = null;
+          }
+
+          else if (ev.type === 'message_stop') {
             if (sentBuf.trim()) qSpeak(stripActions(sentBuf.trim()));
           }
+
         } catch(e) {}
       }
     }
