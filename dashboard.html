@@ -490,27 +490,36 @@ function showAddLead() {
   addMsg('sys', `"${name}" added to pipeline.`);
 }
 
-// Parse action commands from Jarvis responses e.g. [DELETE:name] [ADD:name|phone|loc|P1]
+// Strip all action tags from text (for display and speech)
+function stripActions(text) {
+  return text
+    .replace(/\[DELETE:[^\]]*\]/gi, '')
+    .replace(/\[ADD:[^\]]*\]/gi, '')
+    .replace(/\[SEARCH:[^\]]*\]/gi, '')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
+// Parse and execute action commands from Jarvis responses
 function parseActions(text) {
-  let t = text;
-  const delMatch = t.match(/\[DELETE:([^\]]+)\]/i);
-  if (delMatch) {
-    const removed = deleteLeadByName(delMatch[1].trim());
-    if (removed) addMsg('sys', `Lead "${removed}" deleted from pipeline.`);
-    t = t.replace(delMatch[0], '').trim();
+  // DELETE
+  const delMatches = [...text.matchAll(/\[DELETE:([^\]]+)\]/gi)];
+  for (const m of delMatches) deleteLeadByName(m[1].trim());
+
+  // ADD
+  const addMatches = [...text.matchAll(/\[ADD:([^\]]+)\]/gi)];
+  for (const m of addMatches) {
+    const parts = m[1].split('|');
+    if (parts[0]) addLeadObj({name:parts[0].trim(), phone:parts[1]||'', loc:parts[2]||'', pr:parts[3]||'P3', notes:parts[4]||''});
   }
-  const addMatch = t.match(/\[ADD:([^\]]+)\]/i);
-  if (addMatch) {
-    const parts = addMatch[1].split('|');
-    if (parts[0]) { addLeadObj({name:parts[0].trim(), phone:parts[1]||'', loc:parts[2]||'', pr:parts[3]||'P3', notes:parts[4]||''}); }
-    t = t.replace(addMatch[0], '').trim();
-  }
-  const searchMatch = t.match(/\[SEARCH:([^\]]+)\]/i);
+
+  // SEARCH — only open the FIRST one to avoid tab spam
+  const searchMatch = text.match(/\[SEARCH:([^\]]+)\]/i);
   if (searchMatch) {
     window.open(`https://www.google.com/search?q=${encodeURIComponent(searchMatch[1])}`, '_blank');
-    t = t.replace(searchMatch[0], '').trim();
   }
-  return t;
+
+  return stripActions(text);
 }
 
 // ─── CONFIG ────────────────────────────────────────────────────────────────
@@ -554,7 +563,8 @@ STYLE RULES:
 - When drafting emails/texts/scripts, give the complete template
 - Be specific and actionable
 - When asked to delete a lead, confirm verbally AND append [DELETE:name] tag
-- When asked to find/search for leads, append [SEARCH:query] tag to open Google`;
+- When asked to find/search for leads, append ONE [SEARCH:query] tag maximum — never multiple search tags
+- Never read out or mention the action tags in your spoken response — they are silent background commands`;
 
 let history = [];
 let apiKey = '';
@@ -681,7 +691,8 @@ async function callClaude(userMsg) {
             // Queue speech sentence by sentence
             let m;
             while ((m = sentBuf.match(/^[^.!?]*[.!?]+\s*/))) {
-              qSpeak(m[0].trim());
+              const spoken = stripActions(m[0].trim());
+              if (spoken) qSpeak(spoken);
               sentBuf = sentBuf.slice(m[0].length);
             }
           } else if (ev.type === 'message_stop') {
