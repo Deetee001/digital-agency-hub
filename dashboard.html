@@ -652,35 +652,35 @@ function startRecog() {
       if (e.results[i].isFinal) final += e.results[i][0].transcript;
       else interim += e.results[i][0].transcript;
     }
-    if (interim && awake) setStatus(`Hearing: "${interim.trim()}"`);
+    // Always show what mic hears so user knows it's working
+    if (interim) setStatus(`Hearing: "${interim.trim()}"`);
     if (final) {
       const t = final.trim();
       const low = t.toLowerCase();
-      const hasWake = low.includes('hey jarvis') || low.startsWith('jarvis');
+      const hasWake = low.includes('jarvis'); // catch any variation
       if (hasWake) {
-        const clean = t.replace(/^hey jarvis\W*/i, '').replace(/^jarvis\W*/i, '').trim();
+        const clean = t.replace(/hey jarvis/gi, '').replace(/jarvis/gi, '').trim();
         if (clean.length > 2) {
-          // Wake word + command in one breath
           awake = false;
           addMsg('user', clean);
           callClaude(clean);
           setStatus('Processing...');
         } else {
-          // Just wake word — wait for command
           awake = true;
           setMicState('listening');
           setStatus('Listening... go ahead');
           qSpeak('Yes sir?');
         }
       } else if (awake) {
-        // Already awake — process this as the command
         awake = false;
         addMsg('user', t);
         callClaude(t);
         setStatus('Processing...');
         setMicState('idle');
+      } else {
+        // Show ignored speech so user can see mic IS working
+        setStatus(`Heard: "${t}" — say "Hey Jarvis" to activate`);
       }
-      // If not awake and no wake word — ignore completely
     }
   };
 
