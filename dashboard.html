@@ -200,10 +200,12 @@ main{display:grid;grid-template-columns:270px 1fr 270px;gap:1px;
       <option value="claude-sonnet-4-6" selected>Sonnet — Balanced</option>
       <option value="claude-opus-4-6">Opus — Most intelligent</option>
     </select>
+    <label>ELEVENLABS API KEY (for George's voice)</label>
+    <input type="password" id="elKeyInput" placeholder="f3d0c4c7..." autocomplete="off">
     <label>YOUR BUSINESS NAME</label>
     <input type="text" id="bizNameInput" placeholder="NorthCoast Digital" value="NorthCoast Digital">
     <button class="mbtn" onclick="initSystem()">▶ INITIALIZE J.A.R.V.I.S.</button>
-    <p class="mnote">API key is stored locally in your browser only. Never shared.</p>
+    <p class="mnote">All keys stored locally in your browser only. Never shared.</p>
   </div>
 </div>
 
@@ -391,21 +393,27 @@ STYLE RULES:
 
 let history = [];
 let apiKey = '';
+let elKey = '';
 let model = 'claude-sonnet-4-6';
 let bizName = 'NorthCoast Digital';
 let listening = false;
 let speaking = false;
 let recog = null;
 let speechQ = [];
+let currentAudio = null;
+const EL_VOICE_ID = 'JBFqnCBsd6RMkjVDRZzb'; // George — British, warm, mature
+const EL_MODEL = 'eleven_turbo_v2_5';
 
 // ─── INIT ──────────────────────────────────────────────────────────────────
 function initSystem() {
   const k = document.getElementById('apiKeyInput').value.trim();
   if (!k) { alert('Enter your Anthropic API key to continue.'); return; }
   apiKey = k;
+  elKey = document.getElementById('elKeyInput').value.trim();
   model = document.getElementById('modelSelect').value;
   bizName = document.getElementById('bizNameInput').value.trim() || 'NorthCoast Digital';
   localStorage.setItem('j_key', apiKey);
+  localStorage.setItem('j_elkey', elKey);
   localStorage.setItem('j_model', model);
   localStorage.setItem('j_biz', bizName);
   document.getElementById('settingsModal').classList.remove('on');
@@ -426,9 +434,11 @@ window.addEventListener('load', () => {
   const k = localStorage.getItem('j_key');
   if (k) {
     apiKey = k;
+    elKey = localStorage.getItem('j_elkey') || '';
     model = localStorage.getItem('j_model') || 'claude-sonnet-4-6';
     bizName = localStorage.getItem('j_biz') || 'NorthCoast Digital';
     document.getElementById('apiKeyInput').value = k;
+    document.getElementById('elKeyInput').value = elKey;
     document.getElementById('modelSelect').value = model;
     document.getElementById('bizNameInput').value = bizName;
     document.getElementById('settingsModal').classList.remove('on');
@@ -523,18 +533,48 @@ async function callClaude(userMsg) {
   }
 }
 
-// ─── SPEECH SYNTHESIS ──────────────────────────────────────────────────────
+// ─── SPEECH SYNTHESIS (ElevenLabs) ────────────────────────────────────────
 function qSpeak(text) {
   if (!text) return;
   speechQ.push(text);
   if (!speaking) runQueue();
 }
 
-function runQueue() {
+async function runQueue() {
   if (!speechQ.length) { speaking = false; setMicState(listening?'listening':'idle'); return; }
   speaking = true;
   setMicState('speaking');
-  const utt = new SpeechSynthesisUtterance(speechQ.shift());
+  const text = speechQ.shift();
+
+  if (elKey) {
+    try {
+      const res = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${EL_VOICE_ID}`, {
+        method: 'POST',
+        headers: {
+          'xi-api-key': elKey,
+          'Content-Type': 'application/json',
+          'Accept': 'audio/mpeg'
+        },
+        body: JSON.stringify({
+          text,
+          model_id: EL_MODEL,
+          voice_settings: { stability: 0.5, similarity_boost: 0.78, style: 0.2, use_speaker_boost: true }
+        })
+      });
+      if (res.ok) {
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        currentAudio = new Audio(url);
+        currentAudio.onended = () => { URL.revokeObjectURL(url); currentAudio = null; runQueue(); };
+        currentAudio.onerror = () => { currentAudio = null; runQueue(); };
+        await currentAudio.play();
+        return;
+      }
+    } catch(e) { console.warn('ElevenLabs error:', e); }
+  }
+
+  // Fallback: browser TTS
+  const utt = new SpeechSynthesisUtterance(text);
   const voices = speechSynthesis.getVoices();
   const want = ['Microsoft David','Google UK English Male','Microsoft George','Microsoft Mark','Daniel'];
   let v = null;
@@ -547,6 +587,7 @@ function runQueue() {
 }
 
 function stopSpeak() {
+  if (currentAudio) { currentAudio.pause(); currentAudio = null; }
   speechSynthesis.cancel();
   speechQ = [];
   speaking = false;
