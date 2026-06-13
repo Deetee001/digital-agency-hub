@@ -168,6 +168,11 @@ main{display:grid;grid-template-columns:270px 1fr 270px;gap:1px;
 .sep{height:1px;background:var(--border);margin:10px 0}
 .cpybtn{margin-left:8px;cursor:pointer;opacity:.4;font-size:.7rem;transition:opacity .2s}
 .cpybtn:hover{opacity:1;color:var(--cyan)}
+.ldel{float:right;background:none;border:none;color:var(--red);cursor:pointer;font-size:.9rem;
+  opacity:0;transition:opacity .2s;padding:0 2px;line-height:1}
+.lc:hover .ldel{opacity:.7}
+.ldel:hover{opacity:1!important}
+.jcenter{min-height:0;overflow:hidden}
 
 /* MODAL */
 .mo{display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);
@@ -231,45 +236,11 @@ main{display:grid;grid-template-columns:270px 1fr 270px;gap:1px;
 <div class="panel">
   <div class="ptitle">▸ LEAD INTELLIGENCE</div>
   <div class="stats-row">
-    <div class="stat"><div class="snum">25</div><div class="slbl">TOTAL LEADS</div></div>
+    <div class="stat"><div class="snum" id="totalCount">0</div><div class="slbl">TOTAL LEADS</div></div>
     <div class="stat"><div class="snum" style="color:var(--green)" id="clientCount">0</div><div class="slbl">CLIENTS</div></div>
   </div>
-
-  <div class="pg">
-    <div class="plbl"><span class="pd p1"></span>P1 — OBERLIN / NO WEBSITE</div>
-    <div class="lc" onclick="askLead('Main Street Grille, a diner in Oberlin at (440) 776-9004, no website')"><span class="ls sn">NO SITE</span><div class="ln">Main Street Grille</div><div class="lp">(440) 776-9004</div></div>
-    <div class="lc" onclick="askLead('Catrinas Oberlin, a Mexican restaurant at (440) 775-0050, no website')"><span class="ls sn">NO SITE</span><div class="ln">Catrinas Oberlin</div><div class="lp">(440) 775-0050</div></div>
-    <div class="lc" onclick="askLead('Ying\'s Asian Cuisine, Chinese restaurant at (440) 774-9393, no website')"><span class="ls sn">NO SITE</span><div class="ln">Ying's Asian Cuisine</div><div class="lp">(440) 774-9393</div></div>
-    <div class="lc" onclick="askLead('Knight Jack Cleaners, dry cleaning at (440) 774-6592, no website')"><span class="ls sn">NO SITE</span><div class="ln">Knight Jack Cleaners</div><div class="lp">(440) 774-6592</div></div>
-    <div class="lc" onclick="askLead('S and S Auto Repair in Oberlin, auto shop, no website, in business since 1994')"><span class="ls sn">NO SITE</span><div class="ln">S & S Auto Repair</div><div class="lp">YP Listed</div></div>
-    <div class="lc" onclick="askLead('Johnson\'s Automotive in Oberlin, no website')"><span class="ls sn">NO SITE</span><div class="ln">Johnson's Automotive</div><div class="lp">YP Listed</div></div>
-    <div class="lc" onclick="askLead('Gary\'s Body Shop, auto body in Oberlin, no website')"><span class="ls sn">NO SITE</span><div class="ln">Gary's Body Shop</div><div class="lp">YP Listed</div></div>
-    <div class="lc" onclick="askLead('PC Automotive in Oberlin, family-owned since 1976, no website')"><span class="ls sn">NO SITE</span><div class="ln">PC Automotive</div><div class="lp">Local Directory</div></div>
-    <div class="lc" onclick="askLead('Main Street Antiques in downtown Oberlin, Facebook page only, no website')"><span class="ls sf">FB ONLY</span><div class="ln">Main Street Antiques</div><div class="lp">Facebook Only</div></div>
-    <div class="lc" onclick="askLead('Watson Hardware, a century-old hardware store in downtown Oberlin, no website')"><span class="ls sn">NO SITE</span><div class="ln">Watson Hardware</div><div class="lp">Local Directory</div></div>
-    <div class="lc" onclick="askLead('Lorenzo\'s Pizzeria, Italian pizza in downtown Oberlin, no website')"><span class="ls sn">NO SITE</span><div class="ln">Lorenzo's Pizzeria</div><div class="lp">Local Directory</div></div>
-    <div class="lc" onclick="askLead('Anything Green Lawn Care in Oberlin, Facebook page only, no website')"><span class="ls sf">FB ONLY</span><div class="ln">Anything Green Lawn Care</div><div class="lp">Facebook Only</div></div>
-  </div>
-
-  <div class="pg">
-    <div class="plbl"><span class="pd p2"></span>P2 — OUTDATED SITES</div>
-    <div class="lc" onclick="askLead('Brickyard Bar and Grill in Oberlin at (440) 775-0020, has a bare-bones website with no online ordering')"><span class="ls so">OUTDATED</span><div class="ln">Brickyard Bar & Grill</div><div class="lp">(440) 775-0020</div></div>
-    <div class="lc" onclick="askLead('Oberlin IGA Foodliner at (440) 774-1002, has a very outdated website with just a contact page')"><span class="ls so">OUTDATED</span><div class="ln">Oberlin IGA Foodliner</div><div class="lp">(440) 774-1002</div></div>
-  </div>
-
-  <div class="pg">
-    <div class="plbl"><span class="pd p3"></span>P3 — LORAIN, OH</div>
-    <div class="lc" onclick="askLead('Mutt and Jeff\'s, a classic local diner in Lorain at (440) 282-4080, no website')"><span class="ls sn">NO SITE</span><div class="ln">Mutt & Jeff's</div><div class="lp">(440) 282-4080</div></div>
-    <div class="lc" onclick="askLead('Diso\'s Bistro in Lorain at (440) 282-1195, no website')"><span class="ls sn">NO SITE</span><div class="ln">Diso's Bistro</div><div class="lp">(440) 282-1195</div></div>
-    <div class="lc" onclick="askLead('Scorcher\'s Casual Eatery in Lorain at (440) 244-0556, no website')"><span class="ls sn">NO SITE</span><div class="ln">Scorcher's Eatery</div><div class="lp">(440) 244-0556</div></div>
-    <div class="lc" onclick="askLead('Speak of the Devil bar in Lorain at (440) 434-4286, Facebook only')"><span class="ls sf">FB ONLY</span><div class="ln">Speak of the Devil</div><div class="lp">(440) 434-4286</div></div>
-  </div>
-
-  <div class="pg">
-    <div class="plbl"><span class="pd p4"></span>P4 — ELYRIA, OH</div>
-    <div class="lc" onclick="askLead('Wolfey\'s Bistro and Pub in Elyria, no website found')"><span class="ls sn">NO SITE</span><div class="ln">Wolfey's Bistro & Pub</div><div class="lp">Directory Listed</div></div>
-    <div class="lc" onclick="askLead('Black River Tavern in Elyria, no website found')"><span class="ls sn">NO SITE</span><div class="ln">Black River Tavern</div><div class="lp">Directory Listed</div></div>
-  </div>
+  <button class="abtn" onclick="showAddLead()" style="margin-bottom:8px">+ ADD NEW LEAD</button>
+  <div id="leadsContainer"></div>
 </div>
 
 <!-- CENTER: JARVIS -->
@@ -359,6 +330,128 @@ main{display:grid;grid-template-columns:270px 1fr 270px;gap:1px;
 </main>
 
 <script>
+// ─── LEADS DATA ────────────────────────────────────────────────────────────
+const LEADS_DEFAULT = [
+  {id:'l1',name:'Main Street Grille',phone:'(440) 776-9004',st:'sn',sl:'NO SITE',pr:'P1',loc:'Oberlin',ctx:'a diner in Oberlin at (440) 776-9004, no website'},
+  {id:'l2',name:'Catrinas Oberlin',phone:'(440) 775-0050',st:'sn',sl:'NO SITE',pr:'P1',loc:'Oberlin',ctx:'a Mexican restaurant at (440) 775-0050, no website'},
+  {id:'l3',name:"Ying's Asian Cuisine",phone:'(440) 774-9393',st:'sn',sl:'NO SITE',pr:'P1',loc:'Oberlin',ctx:'Chinese restaurant at (440) 774-9393, no website'},
+  {id:'l4',name:'Knight Jack Cleaners',phone:'(440) 774-6592',st:'sn',sl:'NO SITE',pr:'P1',loc:'Oberlin',ctx:'dry cleaning at (440) 774-6592, no website'},
+  {id:'l5',name:'S & S Auto Repair',phone:'YP Listed',st:'sn',sl:'NO SITE',pr:'P1',loc:'Oberlin',ctx:'auto shop in Oberlin, in business since 1994, no website'},
+  {id:'l6',name:"Johnson's Automotive",phone:'YP Listed',st:'sn',sl:'NO SITE',pr:'P1',loc:'Oberlin',ctx:"Johnson's Automotive in Oberlin, no website"},
+  {id:'l7',name:"Gary's Body Shop",phone:'YP Listed',st:'sn',sl:'NO SITE',pr:'P1',loc:'Oberlin',ctx:"Gary's Body Shop, auto body in Oberlin, no website"},
+  {id:'l8',name:'PC Automotive',phone:'Local Dir.',st:'sn',sl:'NO SITE',pr:'P1',loc:'Oberlin',ctx:'PC Automotive in Oberlin, family-owned since 1976, no website'},
+  {id:'l9',name:'Main Street Antiques',phone:'Facebook Only',st:'sf',sl:'FB ONLY',pr:'P1',loc:'Oberlin',ctx:'Main Street Antiques in downtown Oberlin, Facebook page only'},
+  {id:'l10',name:'Watson Hardware',phone:'Local Dir.',st:'sn',sl:'NO SITE',pr:'P1',loc:'Oberlin',ctx:'Watson Hardware, century-old hardware store in downtown Oberlin, no website'},
+  {id:'l11',name:"Lorenzo's Pizzeria",phone:'Local Dir.',st:'sn',sl:'NO SITE',pr:'P1',loc:'Oberlin',ctx:"Lorenzo's Pizzeria, Italian pizza in downtown Oberlin, no website"},
+  {id:'l12',name:'Anything Green Lawn Care',phone:'Facebook Only',st:'sf',sl:'FB ONLY',pr:'P1',loc:'Oberlin',ctx:'Anything Green Lawn Care in Oberlin, Facebook page only'},
+  {id:'l13',name:'Brickyard Bar & Grill',phone:'(440) 775-0020',st:'so',sl:'OUTDATED',pr:'P2',loc:'Oberlin',ctx:'Brickyard Bar and Grill in Oberlin at (440) 775-0020, bare-bones website, no online ordering'},
+  {id:'l14',name:'Oberlin IGA Foodliner',phone:'(440) 774-1002',st:'so',sl:'OUTDATED',pr:'P2',loc:'Oberlin',ctx:'Oberlin IGA Foodliner at (440) 774-1002, very outdated website'},
+  {id:'l15',name:"Mutt & Jeff's",phone:'(440) 282-4080',st:'sn',sl:'NO SITE',pr:'P3',loc:'Lorain',ctx:"Mutt and Jeff's, classic local diner in Lorain at (440) 282-4080, no website"},
+  {id:'l16',name:"Diso's Bistro",phone:'(440) 282-1195',st:'sn',sl:'NO SITE',pr:'P3',loc:'Lorain',ctx:"Diso's Bistro in Lorain at (440) 282-1195, no website"},
+  {id:'l17',name:"Scorcher's Eatery",phone:'(440) 244-0556',st:'sn',sl:'NO SITE',pr:'P3',loc:'Lorain',ctx:"Scorcher's Casual Eatery in Lorain at (440) 244-0556, no website"},
+  {id:'l18',name:'Speak of the Devil',phone:'(440) 434-4286',st:'sf',sl:'FB ONLY',pr:'P3',loc:'Lorain',ctx:'Speak of the Devil bar in Lorain at (440) 434-4286, Facebook only'},
+  {id:'l19',name:"Wolfey's Bistro & Pub",phone:'Dir. Listed',st:'sn',sl:'NO SITE',pr:'P4',loc:'Elyria',ctx:"Wolfey's Bistro and Pub in Elyria, no website found"},
+  {id:'l20',name:'Black River Tavern',phone:'Dir. Listed',st:'sn',sl:'NO SITE',pr:'P4',loc:'Elyria',ctx:'Black River Tavern in Elyria, no website found'},
+];
+
+const PR_LABELS = {
+  P1:'<span class="pd p1"></span>P1 — OBERLIN / NO WEBSITE',
+  P2:'<span class="pd p2"></span>P2 — OUTDATED SITES',
+  P3:'<span class="pd p3"></span>P3 — LORAIN, OH',
+  P4:'<span class="pd p4"></span>P4 — ELYRIA, OH'
+};
+
+let leads = [];
+
+function loadLeads() {
+  const s = localStorage.getItem('j_leads');
+  leads = s ? JSON.parse(s) : JSON.parse(JSON.stringify(LEADS_DEFAULT));
+}
+
+function saveLeads() {
+  localStorage.setItem('j_leads', JSON.stringify(leads));
+}
+
+function renderLeads() {
+  const c = document.getElementById('leadsContainer');
+  if (!c) return;
+  let html = '';
+  for (const p of ['P1','P2','P3','P4']) {
+    const pl = leads.filter(l => l.pr === p);
+    if (!pl.length) continue;
+    html += `<div class="pg"><div class="plbl">${PR_LABELS[p]}</div>`;
+    for (const l of pl) {
+      const ctx = l.ctx.replace(/'/g,"\\'");
+      html += `<div class="lc" id="lead-${l.id}">
+        <span class="ls ${l.st}">${l.sl}</span>
+        <button class="ldel" onclick="event.stopPropagation();deleteLead('${l.id}')" title="Remove lead">×</button>
+        <div class="ln" onclick="askLead('${ctx}')">${l.name}</div>
+        <div class="lp" onclick="askLead('${ctx}')">${l.phone}</div>
+      </div>`;
+    }
+    html += '</div>';
+  }
+  c.innerHTML = html;
+  document.getElementById('totalCount').textContent = leads.length;
+}
+
+function deleteLead(id) {
+  const l = leads.find(x => x.id === id);
+  leads = leads.filter(x => x.id !== id);
+  saveLeads(); renderLeads();
+  if (l) addMsg('sys', `"${l.name}" removed from pipeline.`);
+}
+
+function deleteLeadByName(name) {
+  const idx = leads.findIndex(l => l.name.toLowerCase().includes(name.toLowerCase()));
+  if (idx < 0) return null;
+  const n = leads[idx].name;
+  leads.splice(idx, 1);
+  saveLeads(); renderLeads();
+  return n;
+}
+
+function addLeadObj(d) {
+  const id = 'l' + Date.now();
+  leads.push({id, name:d.name, phone:d.phone||'', st:d.st||'sn', sl:d.sl||'NO SITE',
+    pr:d.pr||'P3', loc:d.loc||'', ctx:`${d.name} in ${d.loc||''}, ${d.notes||'no website'}`});
+  saveLeads(); renderLeads();
+}
+
+function showAddLead() {
+  const name = prompt('Business name:');
+  if (!name) return;
+  const phone = prompt('Phone (optional):') || '';
+  const loc = prompt('Location (e.g. Oberlin):') || 'Oberlin';
+  const pr = prompt('Priority P1/P2/P3/P4:') || 'P3';
+  const notes = prompt('Notes (e.g. no website, FB only):') || 'no website';
+  addLeadObj({name, phone, loc, pr: pr.toUpperCase(), notes});
+  addMsg('sys', `"${name}" added to pipeline.`);
+}
+
+// Parse action commands from Jarvis responses e.g. [DELETE:name] [ADD:name|phone|loc|P1]
+function parseActions(text) {
+  let t = text;
+  const delMatch = t.match(/\[DELETE:([^\]]+)\]/i);
+  if (delMatch) {
+    const removed = deleteLeadByName(delMatch[1].trim());
+    if (removed) addMsg('sys', `Lead "${removed}" deleted from pipeline.`);
+    t = t.replace(delMatch[0], '').trim();
+  }
+  const addMatch = t.match(/\[ADD:([^\]]+)\]/i);
+  if (addMatch) {
+    const parts = addMatch[1].split('|');
+    if (parts[0]) { addLeadObj({name:parts[0].trim(), phone:parts[1]||'', loc:parts[2]||'', pr:parts[3]||'P3', notes:parts[4]||''}); }
+    t = t.replace(addMatch[0], '').trim();
+  }
+  const searchMatch = t.match(/\[SEARCH:([^\]]+)\]/i);
+  if (searchMatch) {
+    window.open(`https://www.google.com/search?q=${encodeURIComponent(searchMatch[1])}`, '_blank');
+    t = t.replace(searchMatch[0], '').trim();
+  }
+  return t;
+}
+
 // ─── CONFIG ────────────────────────────────────────────────────────────────
 const SYSTEM = `You are J.A.R.V.I.S. (Just A Rather Very Intelligent System), the AI assistant for a Business Intelligence Analyst in Oberlin, Ohio who is launching a full-service digital agency.
 
@@ -388,12 +481,19 @@ Contact sequence: Day1 call → Day2 email → Day4 text → Day7 follow-up → 
 
 BUSINESS NAME OPTIONS: NorthCoast Digital, Clarity Digital, Watershed Digital
 
+ACTIONS YOU CAN TAKE (append these tags silently at end of response):
+- Delete a lead: [DELETE:Business Name]
+- Add a lead: [ADD:Name|Phone|Location|Priority|Notes]
+- Search for leads: [SEARCH:search query for Google]
+
 STYLE RULES:
 - Speak like J.A.R.V.I.S. — intelligent, slightly formal, concise
 - Occasionally address owner as "sir"
 - Responses will be SPOKEN ALOUD — keep them short and conversational (2-4 sentences max unless drafting a template)
 - When drafting emails/texts/scripts, give the complete template
-- Be specific and actionable`;
+- Be specific and actionable
+- When asked to delete a lead, confirm verbally AND append [DELETE:name] tag
+- When asked to find/search for leads, append [SEARCH:query] tag to open Google`;
 
 let history = [];
 let apiKey = '';
@@ -436,6 +536,8 @@ function goOnline() {
 }
 
 window.addEventListener('load', () => {
+  loadLeads();
+  renderLeads();
   const k = localStorage.getItem('j_key');
   if (k) {
     apiKey = k;
@@ -529,7 +631,9 @@ async function callClaude(userMsg) {
       }
     }
 
-    history.push({role:'assistant', content: full});
+    const cleaned = parseActions(full);
+    if (cleaned !== full) updateMsg(msgId, cleaned);
+    history.push({role:'assistant', content: cleaned || full});
     finalizeMsg(msgId);
     setStatus('Listening for "Hey Jarvis"...');
   } catch(err) {
