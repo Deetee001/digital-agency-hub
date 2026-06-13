@@ -201,11 +201,10 @@ main{display:grid;grid-template-columns:270px 1fr 270px;gap:1px;
     <h2>⚡ SYSTEM INITIALIZATION</h2>
     <label>ANTHROPIC API KEY</label>
     <input type="password" id="apiKeyInput" placeholder="sk-ant-api03-..." autocomplete="off">
-    <label>RESPONSE SPEED</label>
+    <label>INTELLIGENCE LEVEL</label>
     <select id="modelSelect">
-      <option value="claude-haiku-4-5">Haiku — Fastest (best for voice)</option>
-      <option value="claude-sonnet-4-6" selected>Sonnet — Balanced</option>
-      <option value="claude-opus-4-6">Opus — Most intelligent</option>
+      <option value="claude-sonnet-4-6" selected>Sonnet 4.6 — Recommended (fast + smart)</option>
+      <option value="claude-opus-4-6">Opus 4.6 — Maximum intelligence (slower)</option>
     </select>
     <label>ELEVENLABS API KEY (for George's voice)</label>
     <input type="password" id="elKeyInput" placeholder="f3d0c4c7..." autocomplete="off">
@@ -448,6 +447,7 @@ function renderLeads() {
   }
   c.innerHTML = html;
   document.getElementById('totalCount').textContent = leads.length;
+  document.getElementById('clientCount').textContent = leads.filter(l => l.st === 'sc').length;
 }
 
 async function deleteLead(id, name) {
@@ -523,48 +523,70 @@ function parseActions(text) {
 }
 
 // ─── CONFIG ────────────────────────────────────────────────────────────────
-const SYSTEM = `You are J.A.R.V.I.S. (Just A Rather Very Intelligent System), the AI assistant for a Business Intelligence Analyst in Oberlin, Ohio who is launching a full-service digital agency.
+const SYSTEM = `You are J.A.R.V.I.S. — the command-center AI for a Business Intelligence Analyst in Oberlin, Ohio launching a full-service digital agency. You are Tony Stark's J.A.R.V.I.S.: intelligent, calm, precise, occasionally dry wit. You address the owner as "sir."
 
-OWNER: BI Analyst | Location: Oberlin, OH | Building: digital agency
+═══ OWNER CONTEXT ═══
+Role: BI Analyst | Location: Oberlin, OH | Domain: mysimi.org
+Building: full-service digital agency targeting local businesses with no/poor web presence
+Goal: $800–$1,500 in Month 1, scale to $8,000–$12,000/month by Month 12
 
-SERVICES & PRICING:
-- Web Design: $299–$1,500 one-time | $49–$99/mo maintenance
-- BI & Analytics: $299–$1,200 dashboards | $199–$499/mo reporting
-- Cloud Infrastructure: $799–$2,500 setup
-- Process Automation: $299–$2,000
-- Nonprofit Bundle: $999–$2,999
+═══ SERVICES & PRICING ═══
+• Web Design: $299 Starter | $599 Standard | $1,200 Premium | $49–$99/mo maintenance
+• BI & Analytics: $299–$1,200 dashboard build | $199–$499/mo reporting retainer
+• Cloud Infrastructure: $799–$2,500 (DB setup, migration, pipelines, security)
+• Process Automation: $299–$2,000 (Zapier, Make, n8n, Python)
+• Nonprofit Bundle: $999–$2,999 (Web + DB + Automation + Reports)
 
-LEADS (25 total):
-P1 Oberlin no-website: Main Street Grille (440-776-9004), Catrinas (440-775-0050), Ying's Asian (440-774-9393), Knight Jack Cleaners (440-774-6592), Main Street Antiques (FB only), Watson Hardware, S&S Auto, Johnson's Auto, Gary's Body Shop, D&D Auto, PC Automotive (since 1976), Lorenzo's Pizza, Uptown Clothing, All Things Great, Oberlin Tobacco & Vape, Anything Green Lawn Care (FB only)
-P2 Oberlin outdated: Brickyard Bar & Grill (440-775-0020, bare-bones site), Oberlin IGA (440-774-1002, outdated)
-P3 Lorain: Mutt & Jeff's (440-282-4080), Diso's Bistro (440-282-1195), Scorcher's (440-244-0556), Speak of the Devil (440-434-4286, FB only), Nancy's Diner
-P4 Elyria: Wolfey's Bistro, Black River Tavern
+═══ LEAD PIPELINE ═══
+P1 — Oberlin, NO WEBSITE (highest priority):
+  Main Street Grille (440-776-9004), Catrinas (440-775-0050), Ying's Asian Cuisine (440-774-9393),
+  Knight Jack Cleaners (440-774-6592), Main Street Antiques (FB only), Watson Hardware,
+  S&S Auto Repair (est.1994), Johnson's Automotive, Gary's Body Shop, PC Automotive (est.1976),
+  Lorenzo's Pizzeria, Anything Green Lawn Care (FB only)
+P2 — Oberlin, OUTDATED SITES:
+  Brickyard Bar & Grill (440-775-0020 — bare-bones, no online ordering),
+  Oberlin IGA Foodliner (440-774-1002 — very outdated)
+P3 — Lorain, OH:
+  Mutt & Jeff's (440-282-4080), Diso's Bistro (440-282-1195),
+  Scorcher's Eatery (440-244-0556), Speak of the Devil (440-434-4286, FB only)
+P4 — Elyria, OH:
+  Wolfey's Bistro & Pub, Black River Tavern
 
-OUTREACH TEMPLATES (brief):
-Cold email: "I noticed [Business] doesn't have a website. I'm a local web designer in Oberlin — sites from $299 that get you on Google. Free mockup?"
-Call: "Hi, I'm [Name] — local web designer. I tried to find [Business] online and noticed there's no website yet..."
-Text: "Hi, I'm a local web designer in Oberlin. [Business] doesn't have a website yet — I build them from $299. Want a free mockup?"
-Facebook-only: "Great FB page — but FB can change overnight. A real website costs $299 and gives you Google visibility permanently."
+═══ OUTREACH STRATEGY ═══
+Sequence: Day 1 call → Day 2 email → Day 4 text → Day 7 follow-up → Day 14 final
+Week 1: Auto shops | Week 2: Restaurants/diners | Week 3: Retail/services | Week 4: Lorain & Elyria
 
-WEEKLY OUTREACH: Wk1=Auto shops | Wk2=Restaurants | Wk3=Retail/services | Wk4=Lorain/Elyria
-Contact sequence: Day1 call → Day2 email → Day4 text → Day7 follow-up → Day14 final
+Best opening for cold call: "Hi, I'm a local web designer in Oberlin. I was trying to find [Business] online for a customer and noticed there's no website — I specialize in helping local businesses get on Google. I build sites starting at $299 and I'd love to show you a free mockup. Is that something you'd be interested in?"
 
-BUSINESS NAME OPTIONS: NorthCoast Digital, Clarity Digital, Watershed Digital
+Email subject: "Quick question about [Business Name] online"
+Email body: "Hi [Name], I'm a local web designer based in Oberlin. I noticed [Business] doesn't have a website yet — I help local businesses just like yours get found on Google. I build professional sites starting at $299 with a free custom mockup upfront. Would you be open to a quick 10-minute call this week? — [Your name], mysimi.org"
 
-ACTIONS YOU CAN TAKE (append these tags silently at end of response):
-- Delete a lead: [DELETE:Business Name]
-- Add a lead: [ADD:Name|Phone|Location|Priority|Notes]
-- Search for leads: [SEARCH:search query for Google]
+Text: "Hi! I'm a local web designer in Oberlin. [Business] doesn't have a website yet — I build them from $299 and can show you a free mockup. Interested? — [Name]"
 
-STYLE RULES:
-- Speak like J.A.R.V.I.S. — intelligent, slightly formal, concise
-- Occasionally address owner as "sir"
-- Responses will be SPOKEN ALOUD — keep them short and conversational (2-4 sentences max unless drafting a template)
-- When drafting emails/texts/scripts, give the complete template
-- Be specific and actionable
-- When asked to delete a lead, confirm verbally AND append [DELETE:name] tag
-- When asked to find/search for leads, append ONE [SEARCH:query] tag maximum — never multiple search tags
-- Never read out or mention the action tags in your spoken response — they are silent background commands`;
+FB-only pitch: "Great Facebook page! But Facebook can limit or change your reach overnight. A real website from $299 gives you permanent Google visibility you own. Want a free mockup?"
+
+═══ INTELLIGENT ACTIONS ═══
+You can silently execute these commands by appending tags AT THE END of your response.
+The tags are INVISIBLE to the user — never read them aloud, never mention them, never describe them.
+
+• Remove a lead from the pipeline: [DELETE:Exact Business Name]
+• Add a new lead: [ADD:Name|Phone|Location|Priority(P1-P4)|Notes]
+• Open a Google search for leads: [SEARCH:search query]
+
+Rules for actions:
+- When user asks to delete/remove a lead → confirm verbally in 1 sentence, then append [DELETE:name]
+- When user asks to find/search for leads → append ONE [SEARCH:query] only, never multiple
+- When user asks to add a lead → confirm verbally, then append [ADD:...] tag
+- CRITICAL: Action tags must NEVER appear in your spoken text. Pretend they don't exist.
+
+═══ RESPONSE STYLE ═══
+• Your responses are SPOKEN ALOUD via ElevenLabs — keep them SHORT (1-3 sentences for voice responses)
+• Exception: drafting full email/call/text templates — give the complete template
+• No bullet points or markdown in conversational voice replies — speak naturally
+• Be specific, actionable, and confident — you know this business inside out
+• When asked for a recommendation, give ONE clear answer, not a list of options
+• If asked something you don't know, say so concisely and suggest where to find it`;
+
 
 let history = [];
 let apiKey = '';
@@ -612,7 +634,8 @@ window.addEventListener('load', async () => {
   if (k) {
     apiKey = k;
     elKey = localStorage.getItem('j_elkey') || '';
-    model = localStorage.getItem('j_model') || 'claude-sonnet-4-6';
+    const savedModel = localStorage.getItem('j_model') || 'claude-sonnet-4-6';
+    model = (savedModel === 'claude-haiku-4-5') ? 'claude-sonnet-4-6' : savedModel;
     bizName = localStorage.getItem('j_biz') || 'NorthCoast Digital';
     document.getElementById('apiKeyInput').value = k;
     document.getElementById('elKeyInput').value = elKey;
@@ -696,7 +719,7 @@ async function callClaude(userMsg) {
               sentBuf = sentBuf.slice(m[0].length);
             }
           } else if (ev.type === 'message_stop') {
-            if (sentBuf.trim()) qSpeak(sentBuf.trim());
+            if (sentBuf.trim()) qSpeak(stripActions(sentBuf.trim()));
           }
         } catch(e) {}
       }
@@ -742,6 +765,7 @@ async function runQueue() {
   const text = speechQ.shift();
 
   if (elKey) {
+    setStatus('George speaking...');
     try {
       const res = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${EL_VOICE_ID}`, {
         method: 'POST',
@@ -761,14 +785,25 @@ async function runQueue() {
         const url = URL.createObjectURL(blob);
         currentAudio = new Audio(url);
         currentAudio.onended = () => { URL.revokeObjectURL(url); currentAudio = null; runQueue(); };
-        currentAudio.onerror = () => { currentAudio = null; runQueue(); };
+        currentAudio.onerror = () => { URL.revokeObjectURL(url); currentAudio = null; runQueue(); };
         await currentAudio.play();
         return;
+      } else {
+        const errBody = await res.text().catch(()=>'');
+        console.warn('ElevenLabs HTTP error:', res.status, errBody);
+        setStatus(`Voice error (${res.status}) — check ElevenLabs key in Settings`);
       }
-    } catch(e) { console.warn('ElevenLabs error:', e); }
+    } catch(e) {
+      console.warn('ElevenLabs error:', e);
+      setStatus('Voice connection error — check network');
+    }
+    // ElevenLabs failed — skip utterance, do NOT fall back to browser TTS (prevents voice switching)
+    runQueue();
+    return;
   }
 
-  // Fallback: browser TTS
+  // No ElevenLabs key: use browser TTS
+  setStatus('Speaking (browser voice — add ElevenLabs key for George)...');
   const utt = new SpeechSynthesisUtterance(text);
   const voices = speechSynthesis.getVoices();
   const want = ['Microsoft David','Google UK English Male','Microsoft George','Microsoft Mark','Daniel'];
