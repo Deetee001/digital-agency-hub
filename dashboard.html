@@ -211,7 +211,11 @@ main{display:grid;grid-template-columns:270px 1fr 270px;gap:1px;
       <option value="claude-sonnet-4-6" selected>Sonnet 4.6 — Recommended (fast + smart)</option>
       <option value="claude-opus-4-6">Opus 4.6 — Maximum intelligence (slower)</option>
     </select>
-    <label>GOOGLE TTS API KEY (British Neural voice — recommended)</label>
+    <label>GEMINI API KEY (best voice — same as Gemini app) ⭐</label>
+    <input type="password" id="geminiKeyInput" placeholder="AIzaSy... (from aistudio.google.com)" autocomplete="off">
+    <button class="mbtn" onclick="testGeminiTTS()" style="margin-bottom:14px;background:rgba(0,255,136,.12);border-color:var(--green);color:var(--green);font-size:.75rem">▶ TEST GEMINI VOICE (Charon)</button>
+    <div id="geminiTestResult" style="font-size:.65rem;color:var(--green);margin-top:-10px;margin-bottom:12px;min-height:16px;text-align:center"></div>
+    <label>GOOGLE TTS API KEY (Journey voice — fallback)</label>
     <input type="password" id="googleKeyInput" placeholder="AIzaSy..." autocomplete="off">
     <button class="mbtn" onclick="testGoogleTTS()" style="margin-bottom:14px;background:rgba(0,255,136,.08);border-color:var(--green);color:var(--green)">▶ TEST GOOGLE VOICE</button>
     <div id="googleTestResult" style="font-size:.65rem;color:var(--green);margin-top:-10px;margin-bottom:12px;min-height:16px;text-align:center"></div>
@@ -534,7 +538,7 @@ function parseActions(text) {
 }
 
 // ─── CONFIG ────────────────────────────────────────────────────────────────
-const SYSTEM = `You are J.A.R.V.I.S. — the command-center AI for a Business Intelligence Analyst in Oberlin, Ohio launching a full-service digital agency. You are Tony Stark's J.A.R.V.I.S.: intelligent, calm, precise, occasionally dry wit. You address the owner as "sir."
+function getSystem() { return `You are J.A.R.V.I.S. — the command-center AI for a Business Intelligence Analyst in Oberlin, Ohio launching a full-service digital agency. You are Tony Stark's J.A.R.V.I.S.: intelligent, calm, precise, occasionally dry wit. You address the owner as "sir."
 
 ═══ OWNER CONTEXT ═══
 Role: BI Analyst | Location: Oberlin, OH | Domain: mysimi.org
@@ -610,15 +614,29 @@ Prefer using your built-in web_search tool to find info yourself rather than ope
 • No bullet points or markdown in conversational voice replies — speak naturally
 • Be specific, actionable, and confident — you know this business inside out
 • When asked for a recommendation, give ONE clear answer, not a list of options
-• If asked something you don't know, say so concisely and suggest where to find it`;
+• If asked something you don't know, say so concisely and suggest where to find it
+
+═══ LIVE PIPELINE STATUS ═══
+Total leads right now: ${leads.length}
+P1 (Oberlin/no website): ${leads.filter(l=>l.pr==='P1').length}
+P2 (Outdated sites): ${leads.filter(l=>l.pr==='P2').length}
+P3 (Lorain): ${leads.filter(l=>l.pr==='P3').length}
+P4 (Elyria): ${leads.filter(l=>l.pr==='P4').length}
+Clients: ${leads.filter(l=>l.st==='sc').length}
+Lead names: ${leads.map(l=>l.name).join(', ')}`;
+}
+
 
 
 let history = [];
 let apiKey = '';
 let elKey = '';
 let googleKey = '';
+let geminiKey = '';
 let model = 'claude-sonnet-4-6';
-const GOOGLE_TTS_VOICE = 'en-US-Journey-D'; // Journey — most natural Google voice, conversational
+const GOOGLE_TTS_VOICE = 'en-US-Journey-D';
+const GEMINI_VOICE = 'Charon'; // Deep, natural male voice — same engine as Gemini app
+const GEMINI_TTS_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent';
 let bizName = 'NorthCoast Digital';
 let listening = false;  // mic is on (wake word mode)
 let awake = false;       // actively listening for a command (after wake word)
@@ -636,11 +654,13 @@ function initSystem() {
   apiKey = k;
   elKey = document.getElementById('elKeyInput').value.trim();
   googleKey = document.getElementById('googleKeyInput').value.trim();
+  geminiKey = document.getElementById('geminiKeyInput').value.trim();
   model = document.getElementById('modelSelect').value;
   bizName = document.getElementById('bizNameInput').value.trim() || 'NorthCoast Digital';
   localStorage.setItem('j_key', apiKey);
   localStorage.setItem('j_elkey', elKey);
   localStorage.setItem('j_googlekey', googleKey);
+  localStorage.setItem('j_geminikey', geminiKey);
   localStorage.setItem('j_model', model);
   localStorage.setItem('j_biz', bizName);
   document.getElementById('settingsModal').classList.remove('on');
@@ -664,12 +684,14 @@ window.addEventListener('load', async () => {
     apiKey = k;
     elKey = localStorage.getItem('j_elkey') || '';
     googleKey = localStorage.getItem('j_googlekey') || '';
+    geminiKey = localStorage.getItem('j_geminikey') || '';
     const savedModel = localStorage.getItem('j_model') || 'claude-sonnet-4-6';
     model = (savedModel === 'claude-haiku-4-5') ? 'claude-sonnet-4-6' : savedModel;
     bizName = localStorage.getItem('j_biz') || 'NorthCoast Digital';
     document.getElementById('apiKeyInput').value = k;
     document.getElementById('elKeyInput').value = elKey;
     document.getElementById('googleKeyInput').value = googleKey;
+    document.getElementById('geminiKeyInput').value = geminiKey;
     document.getElementById('modelSelect').value = model;
     document.getElementById('bizNameInput').value = bizName;
     document.getElementById('settingsModal').classList.remove('on');
@@ -714,7 +736,7 @@ async function callClaude(userMsg) {
       },
       body: JSON.stringify({
         model, max_tokens: 2048, stream: true,
-        system: SYSTEM, messages: history,
+        system: getSystem(), messages: history,
         tools: [{ type: 'web_search_20250305', name: 'web_search', max_uses: 3 }]
       })
     });
@@ -802,7 +824,50 @@ async function callClaude(userMsg) {
   }
 }
 
-// ─── SPEECH SYNTHESIS (ElevenLabs) ────────────────────────────────────────
+// ─── SPEECH SYNTHESIS ─────────────────────────────────────────────────────
+// Gemini TTS: one-shot, no sentence gaps, natural voice
+async function speakGemini(text) {
+  setStatus('Speaking...');
+  const res = await fetch(`${GEMINI_TTS_URL}?key=${geminiKey}`, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({
+      contents: [{role: 'user', parts: [{text}]}],
+      generationConfig: {
+        responseModalities: ['AUDIO'],
+        speechConfig: {voiceConfig: {prebuiltVoiceConfig: {voiceName: GEMINI_VOICE}}}
+      }
+    })
+  });
+  if (!res.ok) { const e = await res.json().catch(()=>{}); throw new Error(e?.error?.message || res.status); }
+  const data = await res.json();
+  const part = data.candidates?.[0]?.content?.parts?.[0]?.inlineData;
+  if (!part) throw new Error('No audio data in Gemini response');
+  await playPCM(part.data, 24000);
+}
+
+async function playPCM(base64, sampleRate) {
+  return new Promise((resolve, reject) => {
+    const binary = atob(base64);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+    const samples = new Float32Array(bytes.length / 2);
+    const view = new DataView(bytes.buffer);
+    for (let i = 0; i < samples.length; i++) samples[i] = view.getInt16(i * 2, true) / 32768.0;
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const buffer = ctx.createBuffer(1, samples.length, sampleRate);
+    buffer.getChannelData(0).set(samples);
+    const source = ctx.createBufferSource();
+    source.buffer = buffer;
+    source.connect(ctx.destination);
+    source.onended = resolve;
+    source.onerror = reject;
+    // Store reference so stopSpeak() can cancel it
+    currentAudio = {pause: () => { try { source.stop(); } catch(e) {} }, _ctx: ctx};
+    source.start(0);
+  });
+}
+
 function qSpeak(text) {
   if (!text) return;
   speechQ.push(text);
@@ -829,7 +894,18 @@ async function runQueue() {
 
   const text = speechQ.shift();
 
-  // ── 1. Google TTS (primary) ──────────────────────────────────────────────
+  // ── 1. Gemini TTS (primary — natural voice, same as Gemini app) ─────────
+  if (geminiKey) {
+    try {
+      await speakGemini(text);
+      runQueue(); return;
+    } catch(e) {
+      console.warn('Gemini TTS error:', e);
+      setStatus(`⚠ Gemini voice error: ${e.message}`);
+    }
+  }
+
+  // ── 2. Google TTS (secondary) ────────────────────────────────────────────
   if (googleKey) {
     setStatus('Speaking...');
     try {
@@ -1110,6 +1186,21 @@ function clearConv() {
   document.getElementById('conv').innerHTML = '';
   history = [];
   addMsg('jarvis', 'Conversation cleared. All systems ready.');
+}
+
+async function testGeminiTTS() {
+  const key = document.getElementById('geminiKeyInput').value.trim();
+  const result = document.getElementById('geminiTestResult');
+  if (!key) { result.style.color='var(--red)'; result.textContent='✗ Enter your Gemini API key first'; return; }
+  result.style.color='var(--text)'; result.textContent='Testing Charon voice...';
+  const savedKey = geminiKey; geminiKey = key;
+  try {
+    await speakGemini('Charon voice test successful. J.A.R.V.I.S. is online and ready, sir.');
+    result.style.color='var(--green)'; result.textContent='✓ Gemini voice is working!';
+  } catch(e) {
+    result.style.color='var(--red)'; result.textContent=`✗ ${e.message}`;
+    geminiKey = savedKey;
+  }
 }
 
 async function testGoogleTTS() {
