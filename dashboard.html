@@ -166,6 +166,8 @@ main{display:grid;grid-template-columns:270px 1fr 270px;gap:1px;
 .rf{height:100%;background:linear-gradient(90deg,var(--cyan),var(--green));border-radius:2px}
 
 .sep{height:1px;background:var(--border);margin:10px 0}
+.cpybtn{margin-left:8px;cursor:pointer;opacity:.4;font-size:.7rem;transition:opacity .2s}
+.cpybtn:hover{opacity:1;color:var(--cyan)}
 
 /* MODAL */
 .mo{display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);
@@ -528,7 +530,8 @@ async function callClaude(userMsg) {
     }
 
     history.push({role:'assistant', content: full});
-    setStatus(listening ? 'Listening... say "Hey Jarvis" to activate' : 'Click reactor to speak');
+    finalizeMsg(msgId);
+    setStatus('Listening for "Hey Jarvis"...');
   } catch(err) {
     updateMsg(msgId, 'System error: ' + err.message + '. Check your API key in Settings.');
     setStatus('Error — check Settings');
@@ -736,10 +739,13 @@ function addMsg(type, text, id) {
   if (id) d.id = id;
   const icon = {user:'◆', jarvis:'⬡', sys:'·'}[type] || '·';
   const lbl = {user:'YOU', jarvis:'J.A.R.V.I.S.', sys:'SYSTEM'}[type] || type.toUpperCase();
-  d.innerHTML = `<div class="mi">${icon}</div><div class="mc"><div class="mlbl">${lbl}</div>`+
+  const ts = new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
+  const copyBtn = (type === 'jarvis' && text) ? `<span class="cpybtn" onclick="copyMsg(this)" title="Copy">⧉</span>` : '';
+  d.innerHTML = `<div class="mi">${icon}</div><div class="mc">`+
+    `<div class="mlbl">${lbl} <span style="opacity:.4;font-size:.55rem">${ts}</span>${copyBtn}</div>`+
     `<div class="mt">${fmt(text)}${text?'':'<span class="cur"></span>'}</div></div>`;
   c.appendChild(d);
-  c.scrollTop = c.scrollHeight;
+  requestAnimationFrame(() => { c.scrollTop = c.scrollHeight; });
   return d;
 }
 
@@ -748,7 +754,31 @@ function updateMsg(id, text) {
   if (!el) return;
   const t = el.querySelector('.mt');
   t.innerHTML = fmt(text) + '<span class="cur"></span>';
-  el.closest('.conv').scrollTop = el.closest('.conv').scrollHeight;
+  const c = el.closest('.conv');
+  requestAnimationFrame(() => { c.scrollTop = c.scrollHeight; });
+}
+
+function finalizeMsg(id) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const cur = el.querySelector('.cur');
+  if (cur) cur.remove();
+  // Add copy button now that message is complete
+  const lbl = el.querySelector('.mlbl');
+  if (lbl && !lbl.querySelector('.cpybtn')) {
+    const btn = document.createElement('span');
+    btn.className = 'cpybtn'; btn.title = 'Copy'; btn.textContent = '⧉';
+    btn.onclick = function() { copyMsg(this); };
+    lbl.appendChild(btn);
+  }
+}
+
+function copyMsg(btn) {
+  const text = btn.closest('.mc').querySelector('.mt').innerText;
+  navigator.clipboard.writeText(text).then(() => {
+    const orig = btn.textContent; btn.textContent = '✓';
+    setTimeout(() => btn.textContent = orig, 1500);
+  });
 }
 
 function fmt(t) {
