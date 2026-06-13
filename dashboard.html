@@ -213,6 +213,8 @@ main{display:grid;grid-template-columns:270px 1fr 270px;gap:1px;
     </select>
     <label>ELEVENLABS API KEY (for George's voice)</label>
     <input type="password" id="elKeyInput" placeholder="f3d0c4c7..." autocomplete="off">
+    <button class="mbtn" onclick="testElevenLabs()" style="margin-bottom:14px;background:rgba(0,255,136,.08);border-color:var(--green);color:var(--green)">▶ TEST GEORGE VOICE</button>
+    <div id="elTestResult" style="font-size:.65rem;color:var(--green);margin-top:-10px;margin-bottom:12px;min-height:16px;text-align:center"></div>
     <label>YOUR BUSINESS NAME</label>
     <input type="text" id="bizNameInput" placeholder="NorthCoast Digital" value="NorthCoast Digital">
     <button class="mbtn" onclick="initSystem()">▶ INITIALIZE J.A.R.V.I.S.</button>
@@ -818,13 +820,13 @@ async function runQueue() {
       console.warn('ElevenLabs error:', e);
       setStatus('Voice connection error — check network');
     }
-    // ElevenLabs failed — skip utterance, do NOT fall back to browser TTS (prevents voice switching)
-    runQueue();
-    return;
+    // ElevenLabs failed — fall back to browser TTS but label it clearly
+    setStatus('⚠ George unavailable — using browser voice');
+    // fall through to browser TTS below
   }
 
-  // No ElevenLabs key: use browser TTS
-  setStatus('Speaking (browser voice — add ElevenLabs key for George)...');
+  // Browser TTS (either no ElevenLabs key, or ElevenLabs failed)
+  setStatus(elKey ? '⚠ Using browser voice (ElevenLabs failed — check key/quota in Settings)' : 'Speaking...');
   const utt = new SpeechSynthesisUtterance(text);
   const voices = speechSynthesis.getVoices();
   const want = ['Microsoft David','Google UK English Male','Microsoft George','Microsoft Mark','Daniel'];
@@ -1045,6 +1047,37 @@ function clearConv() {
   document.getElementById('conv').innerHTML = '';
   history = [];
   addMsg('jarvis', 'Conversation cleared. All systems ready.');
+}
+
+async function testElevenLabs() {
+  const key = document.getElementById('elKeyInput').value.trim();
+  const result = document.getElementById('elTestResult');
+  if (!key) { result.style.color='var(--red)'; result.textContent = '✗ Enter your ElevenLabs key first'; return; }
+  result.style.color = 'var(--text)'; result.textContent = 'Testing...';
+  try {
+    const res = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${EL_VOICE_ID}`, {
+      method: 'POST',
+      headers: {'xi-api-key': key, 'Content-Type': 'application/json', 'Accept': 'audio/mpeg'},
+      body: JSON.stringify({text: 'George voice test successful, sir.', model_id: EL_MODEL,
+        voice_settings: {stability:0.5, similarity_boost:0.78}})
+    });
+    if (res.ok) {
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const audio = new Audio(url);
+      audio.onended = () => URL.revokeObjectURL(url);
+      audio.onerror = () => { result.style.color='var(--red)'; result.textContent = '✗ Audio play failed (browser blocked?)'; };
+      await audio.play();
+      result.style.color = 'var(--green)'; result.textContent = '✓ George voice is working!';
+    } else {
+      const body = await res.text().catch(()=>'');
+      let msg = `HTTP ${res.status}`;
+      try { const j = JSON.parse(body); msg = j.detail?.message || j.detail || msg; } catch(e) {}
+      result.style.color = 'var(--red)'; result.textContent = `✗ ElevenLabs error: ${msg}`;
+    }
+  } catch(e) {
+    result.style.color = 'var(--red)'; result.textContent = `✗ Network error: ${e.message}`;
+  }
 }
 </script>
 </body>
