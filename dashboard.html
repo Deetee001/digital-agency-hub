@@ -304,6 +304,8 @@ main{display:grid;grid-template-columns:270px 1fr 270px;gap:1px;
   </div>
 
   <div class="vbar">
+    <button class="vbtn" id="muteMicBtn" onclick="toggleMuteMic()" title="Mute mic" style="padding:9px 11px;flex-shrink:0">🎤</button>
+    <button class="vbtn" id="muteJarvisBtn" onclick="stopSpeak()" title="Stop Jarvis" style="padding:9px 11px;flex-shrink:0">🔊</button>
     <input class="vi" id="ti" placeholder="Type a command or question..." onkeydown="if(event.key==='Enter')send()">
     <button class="vbtn" onclick="send()">SEND ▶</button>
   </div>
@@ -541,9 +543,20 @@ function qSpeak(text) {
 }
 
 async function runQueue() {
-  if (!speechQ.length) { speaking = false; setMicState(listening?'listening':'idle'); return; }
+  if (!speechQ.length) {
+    speaking = false;
+    setMicState(listening ? 'listening' : 'idle');
+    updateMuteBtn();
+    // Resume mic now that Jarvis is done talking
+    if (listening && recog) { try { recog.start(); } catch(e) {} }
+    return;
+  }
   speaking = true;
   setMicState('speaking');
+  updateMuteBtn();
+  // Pause mic while Jarvis speaks to prevent echo loop
+  if (recog) { try { recog.stop(); } catch(e) {} }
+
   const text = speechQ.shift();
 
   if (elKey) {
@@ -592,6 +605,30 @@ function stopSpeak() {
   speechQ = [];
   speaking = false;
   setMicState(listening ? 'listening' : 'idle');
+  updateMuteBtn();
+  // Resume mic after stopping Jarvis
+  if (listening && recog) { try { recog.start(); } catch(e) {} }
+}
+
+function toggleMuteMic() {
+  listening = !listening;
+  if (listening) {
+    if (recog && !speaking) { try { recog.start(); } catch(e) {} }
+    setMicState('listening');
+    setStatus('Mic on — say "Hey Jarvis" to activate');
+  } else {
+    if (recog) { try { recog.stop(); } catch(e) {} }
+    setMicState('idle');
+    setStatus('Mic muted');
+  }
+  updateMuteBtn();
+}
+
+function updateMuteBtn() {
+  const mb = document.getElementById('muteMicBtn');
+  const jb = document.getElementById('muteJarvisBtn');
+  if (mb) { mb.textContent = listening ? '🎤' : '🚫'; mb.title = listening ? 'Mute mic' : 'Unmute mic'; mb.style.borderColor = listening ? 'var(--green)' : 'var(--red)'; mb.style.color = listening ? 'var(--green)' : 'var(--red)'; }
+  if (jb) { jb.textContent = speaking ? '⏹' : '🔊'; jb.style.borderColor = speaking ? 'var(--orange)' : 'var(--border)'; jb.style.color = speaking ? 'var(--orange)' : 'var(--text)'; }
 }
 
 // ─── SPEECH RECOGNITION ────────────────────────────────────────────────────
