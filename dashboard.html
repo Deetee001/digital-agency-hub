@@ -618,7 +618,7 @@ let apiKey = '';
 let elKey = '';
 let googleKey = '';
 let model = 'claude-sonnet-4-6';
-const GOOGLE_TTS_VOICE = 'en-GB-Neural2-B'; // British male, warm
+const GOOGLE_TTS_VOICE = 'en-US-Journey-D'; // Journey — most natural Google voice, conversational
 let bizName = 'NorthCoast Digital';
 let listening = false;  // mic is on (wake word mode)
 let awake = false;       // actively listening for a command (after wake word)
@@ -838,8 +838,8 @@ async function runQueue() {
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({
           input: {text},
-          voice: {languageCode: 'en-GB', name: GOOGLE_TTS_VOICE},
-          audioConfig: {audioEncoding: 'MP3', speakingRate: 0.95, pitch: -1.0}
+          voice: {languageCode: 'en-US', name: GOOGLE_TTS_VOICE},
+          audioConfig: {audioEncoding: 'MP3', speakingRate: 0.92, pitch: -2.0}
         })
       });
       if (res.ok) {
@@ -1123,8 +1123,8 @@ async function testGoogleTTS() {
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({
         input: {text: 'Google voice test successful, sir. Ready for your command.'},
-        voice: {languageCode: 'en-GB', name: GOOGLE_TTS_VOICE},
-        audioConfig: {audioEncoding: 'MP3', speakingRate: 0.95, pitch: -1.0}
+        voice: {languageCode: 'en-US', name: GOOGLE_TTS_VOICE},
+        audioConfig: {audioEncoding: 'MP3', speakingRate: 0.92, pitch: -2.0}
       })
     });
     if (res.ok) {
