@@ -636,7 +636,7 @@ let geminiKey = '';
 let model = 'claude-sonnet-4-6';
 const GOOGLE_TTS_VOICE = 'en-US-Journey-D';
 const GEMINI_VOICE = 'Charon'; // Deep, natural male voice — same engine as Gemini app
-const GEMINI_TTS_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent';
+const GEMINI_TTS_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent';
 let bizName = 'NorthCoast Digital';
 let listening = false;  // mic is on (wake word mode)
 let awake = false;       // actively listening for a command (after wake word)
@@ -780,14 +780,7 @@ async function callClaude(userMsg) {
               if (full === '') { setMicState('idle'); setStatus('Responding...'); }
               const t = ev.delta.text;
               full += t;
-              sentBuf += t;
               updateMsg(msgId, full);
-              let m;
-              while ((m = sentBuf.match(/^[^.!?]*[.!?]+\s*/))) {
-                const spoken = stripActions(m[0].trim());
-                if (spoken) qSpeak(spoken);
-                sentBuf = sentBuf.slice(m[0].length);
-              }
             } else if (currentBlockType === 'tool_use' && ev.delta?.type === 'input_json_delta') {
               // Build up search query for live status display
               searchQuery += ev.delta.partial_json || '';
@@ -803,7 +796,9 @@ async function callClaude(userMsg) {
           }
 
           else if (ev.type === 'message_stop') {
-            if (sentBuf.trim()) qSpeak(stripActions(sentBuf.trim()));
+            // Speak full response as one chunk — eliminates inter-sentence gaps
+            const toSpeak = stripActions(full.trim());
+            if (toSpeak) qSpeak(toSpeak);
           }
 
         } catch(e) {}
