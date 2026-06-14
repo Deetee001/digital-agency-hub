@@ -889,53 +889,9 @@ async function runQueue() {
 
   const text = speechQ.shift();
 
-  // ── 1. Gemini TTS (primary — natural voice, same as Gemini app) ─────────
-  if (geminiKey) {
-    try {
-      await speakGemini(text);
-      runQueue(); return;
-    } catch(e) {
-      console.warn('Gemini TTS error:', e);
-      setStatus(`⚠ Gemini voice error: ${e.message}`);
-    }
-  }
-
-  // ── 2. Google TTS (secondary) ────────────────────────────────────────────
-  if (googleKey) {
-    setStatus('Speaking...');
-    try {
-      const res = await fetch(`https://texttospeech.googleapis.com/v1/text:synthesize?key=${googleKey}`, {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({
-          input: {text},
-          voice: {languageCode: 'en-US', name: GOOGLE_TTS_VOICE},
-          audioConfig: {audioEncoding: 'MP3', speakingRate: 0.92}
-        })
-      });
-      if (res.ok) {
-        const data = await res.json();
-        const audio = new Audio('data:audio/mp3;base64,' + data.audioContent);
-        currentAudio = audio;
-        audio.onended = () => { currentAudio = null; runQueue(); };
-        audio.onerror = () => { currentAudio = null; runQueue(); };
-        await audio.play();
-        return;
-      } else {
-        const err = await res.json().catch(()=>({}));
-        console.warn('Google TTS error:', res.status, err);
-        setStatus(`⚠ Google voice error (${res.status}) — check key in Settings`);
-      }
-    } catch(e) {
-      console.warn('Google TTS error:', e);
-      setStatus('⚠ Google TTS connection error');
-    }
-    // fall through to ElevenLabs or browser
-  }
-
-  // ── 2. ElevenLabs (backup if Google fails or no Google key) ──────────────
+  // ── 1. ElevenLabs — George (primary) ─────────────────────────────────────
   if (elKey) {
-    setStatus('Speaking (ElevenLabs)...');
+    setStatus('Speaking...');
     try {
       const res = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${EL_VOICE_ID}`, {
         method: 'POST',
@@ -956,11 +912,36 @@ async function runQueue() {
         console.warn('ElevenLabs error:', res.status, errBody);
       }
     } catch(e) { console.warn('ElevenLabs error:', e); }
-    // fall through to browser TTS
+    // ElevenLabs failed (quota/error) — fall through to Google Journey
+  }
+
+  // ── 2. Google Journey TTS (fallback when ElevenLabs quota runs out) ───────
+  if (googleKey) {
+    try {
+      const res = await fetch(`https://texttospeech.googleapis.com/v1/text:synthesize?key=${googleKey}`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+          input: {text},
+          voice: {languageCode: 'en-US', name: GOOGLE_TTS_VOICE},
+          audioConfig: {audioEncoding: 'MP3', speakingRate: 0.92}
+        })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const audio = new Audio('data:audio/mp3;base64,' + data.audioContent);
+        currentAudio = audio;
+        audio.onended = () => { currentAudio = null; runQueue(); };
+        audio.onerror = () => { currentAudio = null; runQueue(); };
+        setStatus('⚠ ElevenLabs quota reached — using Journey voice');
+        await audio.play();
+        return;
+      }
+    } catch(e) { console.warn('Google TTS error:', e); }
   }
 
   // ── 3. Browser TTS (last resort) ─────────────────────────────────────────
-  setStatus(googleKey||elKey ? '⚠ Using browser voice (cloud TTS failed)' : 'Speaking...');
+  setStatus('⚠ Using browser voice');
   const utt = new SpeechSynthesisUtterance(text);
   const voices = speechSynthesis.getVoices();
   const want = ['Microsoft David','Google UK English Male','Microsoft George','Microsoft Mark','Daniel'];
